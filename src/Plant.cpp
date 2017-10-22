@@ -269,8 +269,8 @@ void Plant::Kill(double aBackgroundMortality)
 	assert(traits->memory >= 1);
 
     double pmort = (double(isStressed) / double(traits->memory)) + aBackgroundMortality; // stress mortality + random background mortality
-
-    if (rng.get01() < pmort)
+    double amort = rng.rng() / (double) UINT32_MAX;
+    if (amort < pmort)
 	{
 		isDead = true;
 	}
