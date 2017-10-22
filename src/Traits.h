@@ -70,8 +70,12 @@ public:
     double allocSpacer; 		// proportion of ressource invested in ramet growth -> for annual and biannual species this should not be=AllocSeed, because this is then way to high
     bool resourceShare;         // do established ramets share their resources?
     double mSpacer;  			// resources for 1 cm spacer (default=70)
-// myc stat
-    std::string mycStat;
+
+    // myc stat
+    std::string mycStat;        // obligatory, faculatively, or non-mycorrhizal
+    double mycZOI;              // mycorrhizal factor used for calculation of BG-ZOI
+    double mycCOMP;             // mycorrhizal factor used for calculation of competitive strength
+    double mycC;                // mycorrhizal fraction used for calculation of AG-resource-uptake
 
 //functions..
     Traits();
