@@ -1,0 +1,5 @@
+NRep 1
+SimID ComNr IC_vers Mode ITVsd Tmax Env Sigma ARes Bres GrazProb PropRemove BelGrazProb BelGrazPerc BelGrazAlpha BelGrazHistorySize CatastrMortality CatastrDistWeek SeedRainType SeedInput weekly ind_out pft_out srv_out trait_out agg_out NameInitFile
+895001805 1 1 0 0 100 100 90 0.3 0.5 0 0 0 0 0 0 0 0 0 0 1 0 1 1 pft.txt
+895001806 1 1 0 0 100 100 90 0.3 0.5 0 0 0 0 0 0 0 0 0 0 1 0 1 1 pftOM.txt 
+895001807 1 1 0 0 100 100 90 0.3 0.5 0 0 0 0 0 0 0 0 0 0 1 0 1 1 pftFM.txt 
