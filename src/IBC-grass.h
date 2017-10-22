@@ -11,4 +11,6 @@ extern std::string NameSimFile;
 extern std::string outputPrefix;
 extern RandomGenerator rng;
 extern Output output;
+
+void ThreadDone(void);
 #endif // IBCGRASS_H

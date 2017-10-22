@@ -45,11 +45,10 @@ void* startfnc(void* ptr){
     
     lpThread=((CThread *)(ptr));
     if (lpThread->InitInstance()!=0) {
-        CThread::Count++;
         return_code = (void*)(long int)(((CThread *)(ptr))->Run());
+        CThread::Count--;
         lpThread->ExitInstance();
         delete lpThread;
-        CThread::Count--;
         pthread_exit(return_code);
         return (return_code);
     } else {
@@ -126,6 +125,7 @@ void CThread::Create() {
     
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    CThread::Count++;
     pthread_create(&ThreadID, &attr, startfnc, (void *)(this));
     
 }

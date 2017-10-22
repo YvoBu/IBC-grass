@@ -165,7 +165,7 @@ void Grid::DisperseSeeds(const std::shared_ptr<Plant> & plant)
 
         Cell* cell = CellList[x * GridSize + y];
 
-        cell->SeedBankList.push_back(make_unique<Seed>(traits.createTraitSetFromPftType(plant->traits->PFT_ID), cell, ITV, ITVsd));
+        cell->SeedBankList.push_back(make_unique<Seed>(createTraitSetFromPftType(plant->traits->PFT_ID), cell, ITV, ITVsd));
     }
 }
 
@@ -772,7 +772,7 @@ void Grid::InitSeeds(string PFT_ID, const int n, const double estab)
 
         Cell* cell = CellList[x * GridSize + y];
 
-        cell->SeedBankList.push_back(make_unique<Seed>(traits.createTraitSetFromPftType(PFT_ID), cell, estab, ITV, ITVsd));
+        cell->SeedBankList.push_back(make_unique<Seed>(createTraitSetFromPftType(PFT_ID), cell, estab, ITV, ITVsd));
     }
 }
 

@@ -29,8 +29,8 @@ private:
 	double mReproRamets;			// resources for ramet growth
 
 public:
-	std::unique_ptr<Traits> traits;	// PFT Traits
-	std::weak_ptr<Genet> genet; 		// genet of the clonal plant
+    std::unique_ptr<Traits> traits;	    // PFT Traits
+    std::weak_ptr<Genet>    genet; 		// genet of the clonal plant
 
 	static int staticID;
 	int plantID;

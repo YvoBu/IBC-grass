@@ -36,7 +36,7 @@ void GridEnvir::InitInds()
     if (mode == communityAssembly || mode == catastrophicDisturbance)
     {
         // PFT Traits are read in GetSim()
-        for (auto const& it : traits.pftTraitTemplates)
+        for (auto const& it : pftTraitTemplates)
         {
             InitSeeds(it.first, no_init_seeds, estab);
             PftSurvTime[it.first] = 0;
@@ -44,9 +44,9 @@ void GridEnvir::InitInds()
     }
     else if (mode == invasionCriterion)
     {
-        assert(traits.pftTraitTemplates.size() == 2);
+        assert(pftTraitTemplates.size() == 2);
 
-        string resident = traits.pftInsertionOrder[1];
+        string resident = pftInsertionOrder[1];
         InitSeeds(resident, no_init_seeds, estab);
         PftSurvTime[resident] = 0;
     }
@@ -73,7 +73,7 @@ void GridEnvir::OneRun()
             const int no_init_seeds = 100;
             const double estab = 1.0;
 
-            string invader = traits.pftInsertionOrder[0];
+            string invader = pftInsertionOrder[0];
             InitSeeds(invader, no_init_seeds, estab);
             PftSurvTime[invader] = 0;
         }
@@ -200,7 +200,7 @@ void GridEnvir::SeedRain()
 {
 
     // For each PFT, we'll drop n seeds
-    for (auto const& it : traits.pftTraitTemplates)
+    for (auto const& it : pftTraitTemplates)
     {
         auto pft_name = it.first;
         double n;
@@ -227,15 +227,15 @@ void GridEnvir::print_param()
     ss << getSimID()					<< ", ";
     ss << Environment::ComNr 							<< ", ";
     ss << Environment::RunNr 							<< ", ";
-    ss << traits.pftTraitTemplates.size()				<< ", ";
+    ss << pftTraitTemplates.size()				<< ", ";
     ss << stabilization 				<< ", ";
     ss << ITVsd 						<< ", ";
     ss << Tmax 						<< ", ";
 
     if (mode == invasionCriterion)
     {
-        std::string invader 	= traits.pftInsertionOrder[0];
-        std::string resident 	= traits.pftInsertionOrder[1];
+        std::string invader 	= pftInsertionOrder[0];
+        std::string resident 	= pftInsertionOrder[1];
 
         ss << invader 									<< ", ";
         ss << resident 									<< ", ";
@@ -328,7 +328,7 @@ map<string, PFT_struct> GridEnvir::buildPFT_map(const std::vector< std::shared_p
 {
     map<string, PFT_struct> PFT_map;
 
-    for (auto const& it : traits.pftTraitTemplates)
+    for (auto const& it : pftTraitTemplates)
     {
         PFT_map[it.first] = PFT_struct();
     }
@@ -353,7 +353,7 @@ map<string, PFT_struct> GridEnvir::buildPFT_map(const std::vector< std::shared_p
 void GridEnvir::print_trait()
 {
 
-    for (auto const& it : traits.pftTraitTemplates)
+    for (auto const& it : pftTraitTemplates)
     {
         std::ostringstream ss;
 

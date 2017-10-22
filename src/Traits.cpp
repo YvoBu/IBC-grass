@@ -30,6 +30,32 @@ Traits::Traits() :
 
 }
 
+Traits::Traits(std::string line) :
+    myTraitType(Traits::species), PFT_ID("EMPTY"),
+    LMR(-1), SLA(-1), RAR(1), m0(-1), maxMass(-1),
+    allocSeed(0.05), seedMass(-1), dispersalDist(-1), dormancy(1), pEstab(0.5),
+    Gmax(-1), palat(-1), memory(-1),
+    mThres(0.2), growth(0.25), flowerWeek(16), dispersalWeek(20),
+    clonal(false), meanSpacerlength(0), sdSpacerlength(0),
+    allocSpacer(0), resourceShare(false), mSpacer(0)
+{
+    std::stringstream ss(line);
+
+    ss >> PFT_ID
+       >> allocSeed >> LMR >> m0
+        >> maxMass >> seedMass >> dispersalDist
+        >> pEstab >> Gmax >> SLA
+        >> palat >> memory >> RAR
+        >> growth >> mThres >> clonal
+        >> meanSpacerlength >> sdSpacerlength >> resourceShare
+        >> allocSpacer
+        >> mSpacer >> mycStat;
+
+    maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
+
+}
+
+#if 0
 /*
  * Copy constructor
  */
@@ -40,23 +66,11 @@ Traits::Traits(const Traits& s) :
         Gmax(s.Gmax), palat(s.palat), memory(s.memory),
         mThres(s.mThres), growth(s.growth), flowerWeek(s.flowerWeek), dispersalWeek(s.dispersalWeek),
         clonal(s.clonal), meanSpacerlength(s.meanSpacerlength), sdSpacerlength(s.sdSpacerlength),
-        allocSpacer(s.allocSpacer), resourceShare(s.resourceShare), mSpacer(s.mSpacer)
+        allocSpacer(s.allocSpacer), resourceShare(s.resourceShare), mSpacer(s.mSpacer), maxMassPow_4_3rd(s.maxMassPow_4_3rd)
 {
 
 }
-
-/**
- * Retrieve a deep-copy of that PFT's basic trait set
- */
-unique_ptr<Traits> Traits::createTraitSetFromPftType(string type)
-{
-    const auto pos = pftTraitTemplates.find(type);
-
-    assert(pos != pftTraitTemplates.end() && "Trait type not found");
-
-    return (make_unique<Traits>(*pos->second));
-}
-
+#endif
 /**
  * Retrieve a deep-copy some arbitrary trait set (for plants dropping seeds)
  */
@@ -70,33 +84,6 @@ unique_ptr<Traits> Traits::copyTraitSet(const unique_ptr<Traits> & t)
  * Read definition of PFTs used in the simulation
  * @param file file containing PFT definitions
  */
-void Traits::ReadPFTDef(const string& file)
-{
-    //Open InitFile
-    ifstream InitFile(file.c_str());
-
-    string line;
-    getline(InitFile, line); // skip header line
-    while (getline(InitFile, line))
-    {
-        std::stringstream ss(line);
-
-        unique_ptr<Traits> traits(new Traits);
-
-        ss >> traits->PFT_ID
-                >> traits->allocSeed >> traits->LMR >> traits->m0
-                >> traits->maxMass >> traits->seedMass >> traits->dispersalDist
-                >> traits->pEstab >> traits->Gmax >> traits->SLA
-                >> traits->palat >> traits->memory >> traits->RAR
-                >> traits->growth >> traits->mThres >> traits->clonal
-                >> traits->meanSpacerlength >> traits->sdSpacerlength >> traits->resourceShare
-                >> traits->allocSpacer >> traits->mSpacer;
-
-        Traits::pftInsertionOrder.push_back(traits->PFT_ID);
-
-        Traits::pftTraitTemplates.insert(std::make_pair(traits->PFT_ID, std::move(traits)));
-    }
-}
 
 /* MSC
  * Vary the current individual's traits, based on a Gaussian distribution with a

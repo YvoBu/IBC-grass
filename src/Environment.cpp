@@ -162,7 +162,7 @@ void Environment::GetSim(string data)
     output.setupOutput(param, trait, srv, PFT, ind, aggregated);
 
 
-    traits.ReadPFTDef(Parameters::NamePftFile);
+    ReadPFTDef(NamePftFile);
 
 }
 
@@ -176,4 +176,31 @@ std::string Environment::getSimID()
 
     return s;
 }
+
+void Environment::ReadPFTDef(const string& file)
+{
+    //Open InitFile
+    ifstream InitFile(file.c_str());
+
+    string line;
+    getline(InitFile, line); // skip header line
+    while (getline(InitFile, line))
+    {
+        Traits* trait = new Traits(line);
+        pftTraitTemplates.insert(std::pair<std::string, Traits*>(trait->PFT_ID, trait));
+        pftInsertionOrder.push_back(trait->PFT_ID);
+    }
+}
+
+/**
+ * Retrieve a deep-copy of that PFT's basic trait set
+ */
+unique_ptr<Traits> Environment::createTraitSetFromPftType(string type)
+{
+    const auto pos = pftTraitTemplates.find(type);
+
+    return (make_unique<Traits>(*pos->second));
+}
+
+
 

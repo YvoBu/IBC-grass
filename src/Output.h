@@ -92,6 +92,9 @@ public:
     std::ofstream PFT_stream;
     std::ofstream ind_stream;
     std::ofstream aggregated_stream;
+
+    pthread_mutex_t outputlock;
+    pthread_mutex_t openlock;
 };
 
 #endif /* SRC_OUTPUT_H_ */

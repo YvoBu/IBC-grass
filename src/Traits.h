@@ -22,9 +22,6 @@ public:
     };
 
 //general
-    std::map< std::string, std::unique_ptr<Traits> > pftTraitTemplates; // links of PFTs (Traits) used
-    std::vector< std::string > pftInsertionOrder;
-
     traitType myTraitType; 	// The default trait set is a species -- only after being varied is it individualized.
     std::string PFT_ID;    	// name of functional type
 
@@ -34,6 +31,7 @@ public:
     double RAR;     // root area ratio (root area per root mass) equal to croot in the model description
     double m0;      // initial masses of root and shoot
     double maxMass; // maximum individual mass
+    double maxMassPow_4_3rd;
 
 //seed reproduction
     double allocSeed;  		// constant proportion that is allocated to seeds between FlowerWeek and DispWeek
@@ -72,14 +70,14 @@ public:
     double allocSpacer; 		// proportion of ressource invested in ramet growth -> for annual and biannual species this should not be=AllocSeed, because this is then way to high
     bool resourceShare;         // do established ramets share their resources?
     double mSpacer;  			// resources for 1 cm spacer (default=70)
+// myc stat
+    std::string mycStat;
 
 //functions..
     Traits();
-    Traits(const Traits& s);
+    Traits(const std::string line);
 
     void varyTraits(double);
-    void ReadPFTDef(const std::string& file);
-    std::unique_ptr<Traits> createTraitSetFromPftType(std::string type);
     std::unique_ptr<Traits> copyTraitSet(const std::unique_ptr<Traits> & t);
 
 };

@@ -87,6 +87,8 @@ Output::Output() :
     TotalBelowComp = { 0 };
     TotalNonClonalPlants = { 0 };
     TotalClonalPlants = { 0 };
+    pthread_mutex_init(&outputlock, 0);
+    pthread_mutex_init(&openlock, 0);
 }
 
 Output::~Output()
@@ -97,6 +99,9 @@ Output::~Output()
 void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
                          string _PFT_fn, string _ind_fn, string _agg_fn)
 {
+
+    pthread_mutex_lock(&openlock);
+
     param_fn = _param_fn;
     trait_fn = _trait_fn;
     srv_fn = _srv_fn;
@@ -106,44 +111,46 @@ void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
 
     bool mid_batch = is_file_exist(param_fn.c_str());
 
-    param_stream.open(param_fn.c_str(), ios_base::app);
-    assert(param_stream.good());
-    if (!mid_batch) print_row(param_header, param_stream);
-
-    if (!trait_fn.empty())
+    if (!param_stream.is_open()) {
+        param_stream.open(param_fn.c_str(), ios_base::app);
+        assert(param_stream.good());
+        if (!mid_batch) print_row(param_header, param_stream);
+    }
+    if ((!trait_fn.empty()) && (!trait_stream.is_open()))
     {
         trait_stream.open(trait_fn.c_str(), ios_base::app);
         assert(trait_stream.good());
         if (!mid_batch) print_row(trait_header, trait_stream);
     }
 
-    if (!PFT_fn.empty())
+    if ((!PFT_fn.empty()) && (!PFT_stream.is_open()))
     {
         PFT_stream.open(PFT_fn.c_str(), ios_base::app);
         assert(PFT_stream.good());
         if (!mid_batch) print_row(PFT_header, PFT_stream);
     }
 
-    if (!ind_fn.empty())
+    if ((!ind_fn.empty()) && (!ind_stream.is_open()))
     {
         ind_stream.open(ind_fn.c_str(), ios_base::app);
         assert(ind_stream.good());
         if (!mid_batch) print_row(ind_header, ind_stream);
     }
 
-    if (!srv_fn.empty())
+    if ((!srv_fn.empty()) && (!srv_stream.is_open()))
     {
         srv_stream.open(srv_fn.c_str(), ios_base::app);
         assert(srv_stream.good());
         if (!mid_batch) print_row(srv_header, srv_stream);
     }
 
-    if (!aggregated_fn.empty())
+    if ((!aggregated_fn.empty())  && (!aggregated_stream.is_open()))
     {
         aggregated_stream.open(aggregated_fn.c_str(), ios_base::app);
         assert(aggregated_stream.good());
         if (!mid_batch) print_row(aggregated_header, aggregated_stream);
     }
+    pthread_mutex_unlock(&openlock);
 }
 
 bool Output::is_file_exist(const char *fileName)
@@ -192,15 +199,18 @@ void Output::cleanup()
 // Prints a row of data out a string, as a comma separated list with a newline at the end.
 void Output::print_row(std::ostringstream & ss, ofstream & stream)
 {
+    pthread_mutex_lock(&outputlock);
     assert(stream.good());
 
     stream << ss.str() << endl;
 
     stream.flush();
+    pthread_mutex_unlock(&outputlock);
 }
 
 void Output::print_row(vector<string> row, ofstream & stream)
 {
+    pthread_mutex_lock(&outputlock);
     assert(stream.good());
 
     std::ostringstream ss;
@@ -212,6 +222,7 @@ void Output::print_row(vector<string> row, ofstream & stream)
     stream << ss.str() << endl;
 
     stream.flush();
+    pthread_mutex_unlock(&outputlock);
 }
 
 double Output::calculateShannon(const std::map<std::string, PFT_struct> & _PFT_map)

@@ -41,7 +41,10 @@ public:
 	    return std::fabs(a - b) < std::numeric_limits<double>::epsilon();
 	}
     std::string getSimID(); // Merge ID for data sets
-    Traits traits;
+    void ReadPFTDef(const std::string& file);
+    std::unique_ptr<Traits> createTraitSetFromPftType(std::string type);
+    std::map< std::string, Traits* > pftTraitTemplates; // links of PFTs (Traits) used
+    std::vector< std::string>            pftInsertionOrder;
 };
 
 #endif
