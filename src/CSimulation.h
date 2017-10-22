@@ -11,7 +11,6 @@ public:
     virtual int Run(void);
     virtual void ExitInstance();
 private:
-    int         RunNr;
     std::string Configuration;
 };
 
