@@ -40,6 +40,7 @@ Traits::Traits(std::string line) :
     allocSpacer(0), resourceShare(false), mSpacer(0)
 {
     std::stringstream ss(line);
+    double mycCin;
 
     ss >> PFT_ID
        >> allocSeed >> LMR >> m0
@@ -49,11 +50,12 @@ Traits::Traits(std::string line) :
         >> growth >> mThres >> clonal
         >> meanSpacerlength >> sdSpacerlength >> resourceShare
         >> allocSpacer
-        >> mSpacer >> mycStat;
+        >> mSpacer >> mycStat >> mycZOI >> mycCOMP >> mycCin;
 
     // optimization for maxMass calculation
     maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
-
+    mycC = mycCin/100.0;
+#if 0
     // set random values for mycZOI, mycCOMP, and mycC
     // based on mycStat (OM: obligatory, FM: facultatively, NM: non-mycorrhizal)
     // incl. error message
@@ -75,6 +77,7 @@ Traits::Traits(std::string line) :
     } else {
         std::cerr << "invalid mycStat: '" << mycStat << "'\n";
     }
+#endif
     std::cerr << mycStat << " mycZOI:" << mycZOI << " mycCOMP:" << mycCOMP << " mycC:" << mycC << "\n";
 }
 
