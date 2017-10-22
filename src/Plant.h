@@ -87,7 +87,7 @@ public:
 	}
 
 	inline double Area_shoot()		{ return traits->SLA * pow(traits->LMR * mShoot, 2.0 / 3.0); } // ZOI area
-	inline double Area_root()   	{ return traits->RAR * pow(mRoot, 2.0 / 3.0); }
+    inline double Area_root()   	{ return traits->RAR * pow(mRoot, 2.0 / 3.0) * traits->mycZOI; }
 	inline double Radius_shoot() 	{ return sqrt(traits->SLA * pow(traits->LMR * mShoot, 2.0 / 3.0) / Pi); } // ZOI radius
 	inline double Radius_root() 	{ return sqrt(traits->RAR * pow(mRoot, 2.0 / 3.0) / Pi); }
 

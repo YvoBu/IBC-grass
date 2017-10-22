@@ -401,7 +401,7 @@ double Plant::comp_coef(const int layer, const int symmetry) const
 		if (layer == 1)
 			return mShoot * traits->CompPowerA();
 		if (layer == 2)
-			return mRoot * traits->CompPowerB();
+            return mRoot * traits->CompPowerB() * traits->mycCOMP;
 		break;
 	default:
 		cerr << "CPlant::comp_coef() - wrong input";

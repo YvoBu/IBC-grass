@@ -71,7 +71,7 @@ public:
     bool resourceShare;         // do established ramets share their resources?
     double mSpacer;  			// resources for 1 cm spacer (default=70)
 
-    // myc stat
+// myc stat
     std::string mycStat;        // obligatory, faculatively, or non-mycorrhizal
     double mycZOI;              // mycorrhizal factor used for calculation of BG-ZOI
     double mycCOMP;             // mycorrhizal factor used for calculation of competitive strength

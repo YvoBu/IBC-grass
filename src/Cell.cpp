@@ -322,7 +322,9 @@ void CellAsymPartSymV2::AboveComp() {
         assert(plant);
 
         comp_c = plant->comp_coef(1, 2) * prop_res_above(plant->pft());
-        plant->Auptake += AResConc * comp_c / comp_tot;
+        //
+        //  Remove mycC procent from the original Auptake.
+        plant->Auptake += (AResConc * comp_c / comp_tot) * (1 - plant->traits->mycC);
     }
 
     aComp_weekly = comp_tot;

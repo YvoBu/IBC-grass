@@ -51,8 +51,31 @@ Traits::Traits(std::string line) :
         >> allocSpacer
         >> mSpacer >> mycStat;
 
+    // optimization for maxMass calculation
     maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
 
+    // set random values for mycZOI, mycCOMP, and mycC
+    // based on mycStat (OM: obligatory, FM: facultatively, NM: non-mycorrhizal)
+    // incl. error message
+    if (mycStat == "OM") {
+        mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
+        mycCOMP = ((rng.rng() |0x01u) / ((double) UINT32_MAX) / 2.0); // generates random number between 0 (0x01u) and 2.0
+        mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+
+    } else if (mycStat == "FM") {
+        mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+        mycCOMP = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+        mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+
+    } else if (mycStat == "NM") {
+        mycZOI = 1.0;
+        mycCOMP = 1.0;
+        mycC = 0;
+
+    } else {
+        std::cerr << "invalid mycStat: '" << mycStat << "'\n";
+    }
+    std::cerr << mycStat << " mycZOI:" << mycZOI << " mycCOMP:" << mycCOMP << " mycC:" << mycC << "\n";
 }
 
 #if 0
