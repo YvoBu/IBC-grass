@@ -1,4 +1,7 @@
 #include <iostream>
+#include <memory>
+#include <string>
+#include <sstream>
 
 #include "CThread.h"
 #include "itv_mode.h"
@@ -8,6 +11,7 @@
 #include "Parameters.h"
 #include "CSimulation.h"
 #include "IBC-grass.h"
+
 
 CSimulation::CSimulation(int i, std::string aConfig)
 {

@@ -28,7 +28,9 @@ private:
     void print_trait(); // prints the traits of each PFT
     void print_ind(const std::vector< std::shared_ptr<Plant> > & PlantList); 			// prints individual data
     void print_aggregated(const std::vector< std::shared_ptr<Plant> > & PlantList);		// prints longitudinal data that's not just each PFT
-
+    void OutputGamma();
+public:
+    static pthread_mutex_t gammalock;
 };
 
 #endif /* CGRIDENVIR_H_ */

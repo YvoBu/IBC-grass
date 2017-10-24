@@ -11,6 +11,7 @@
 #include "GridEnvir.h"
 #include "IBC-grass.h"
 using namespace std;
+pthread_mutex_t GridEnvir::gammalock;
 
 //------------------------------------------------------------------------------
 
@@ -170,6 +171,7 @@ void GridEnvir::OneWeek()
         {
             print_ind(PlantList);
         }
+        OutputGamma();
     }
 
 }
@@ -458,4 +460,68 @@ void GridEnvir::print_aggregated(const std::vector< std::shared_ptr<Plant> > & P
 
     output.print_row(ss, output.aggregated_stream);
 
+}
+
+void GridEnvir::OutputGamma() {
+    //
+    //  Lockout all other threads.
+    pthread_mutex_lock(&GridEnvir::gammalock);
+    std::map<std::string, long> pft;
+    std::map<std::string, long>::iterator pfti;
+    std::vector<std::shared_ptr<Plant> >::iterator pi;
+    //
+    //  Create counters from all PFTs
+    std::map< std::string, Traits* >::iterator ti;
+
+    for (ti = pftTraitTemplates.begin(); ti != pftTraitTemplates.end(); ++ti) {
+        pft[ti->first] = 0;
+    }
+    //
+    //  Count PFTs
+    for (pi=PlantList.begin(); pi != PlantList.end(); ++pi) {
+        if (!(*pi)->isDead) {
+            pft[(*pi)->traits->PFT_ID]++;
+        }
+    }
+    //
+    //  Generate output file
+    std::ostringstream oss;
+    //
+    //  Create filename from different variables inside the simulation
+    //  SimID is an int. So we need to format it.
+    oss << "data/out/" << outputPrefix << "_" << SimID << "_gamma.csv";
+    //
+    //  Open file for append.
+    std::ofstream gammafile(oss.str(), std::ios_base::app);
+    //
+    //  Check if file could be opened.
+    if (gammafile.good()) {
+        //
+        //  Check if file is empty.
+        if (gammafile.tellp()==0) {
+            //
+            // In an empty file we create the header first.
+            gammafile << "RunNr,Year";
+            //
+            //  Put the PFT_IDs as field header.
+            for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
+                gammafile << "," << pfti->first;
+            }
+            gammafile << std::endl;
+        }
+        //
+        //  Output the real data.
+        gammafile << RunNr << "," << year;
+        //
+        // Write the counts for the pfts.
+        for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
+            gammafile << "," << pfti->second;
+        }
+        gammafile << std::endl;
+    } else {
+        std::cerr << "Could not open gammafile " << oss.str() << std::endl;
+    }
+    //
+    // Let other threads do their output.
+    pthread_mutex_unlock(&GridEnvir::gammalock);
 }

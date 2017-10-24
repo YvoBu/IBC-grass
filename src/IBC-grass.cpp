@@ -187,6 +187,9 @@ int main(int argc, char* argv[])
     //  Check if the simfile could be opened. If not, give a error message
     if (SimFile.good()) {
         //
+        // initialize the lock in the simulation class
+        pthread_mutex_init(&GridEnvir::gammalock, 0);
+        //
         //  Make it crazy save.
         if (getline(SimFile, data).good()) {
             std::stringstream ss(data);
