@@ -25,7 +25,7 @@ Traits::Traits() :
         Gmax(-1), palat(-1), memory(-1),
         mThres(0.2), growth(0.25), flowerWeek(16), dispersalWeek(20),
         clonal(false), meanSpacerlength(0), sdSpacerlength(0),
-        allocSpacer(0), resourceShare(false), mSpacer(0)
+        allocSpacer(0), resourceShare(false), mSpacer(0), mycZOI(0.0), mycCOMP(0.0),  mycC(0.0)
 {
 
 }
@@ -37,7 +37,7 @@ Traits::Traits(std::string line) :
     Gmax(-1), palat(-1), memory(-1),
     mThres(0.2), growth(0.25), flowerWeek(16), dispersalWeek(20),
     clonal(false), meanSpacerlength(0), sdSpacerlength(0),
-    allocSpacer(0), resourceShare(false), mSpacer(0)
+    allocSpacer(0), resourceShare(false), mSpacer(0), mycZOI(0.0), mycCOMP(0.0), mycC(0.0)
 {
     std::stringstream ss(line);
     double mycCin;
@@ -50,53 +50,52 @@ Traits::Traits(std::string line) :
         >> growth >> mThres >> clonal
         >> meanSpacerlength >> sdSpacerlength >> resourceShare
         >> allocSpacer
-        >> mSpacer >> mycStat >> mycZOI >> mycCOMP >> mycCin;
-
+        >> mSpacer >> mycStat;
+    /*
+     * Checking the input stream for more values.
+     * Only if the stream is still good we read in more.
+     */
+    if (ss.good()) {
+        ss >> mycZOI;
+        if (!ss.good()) {
+            if (mycStat == "OM") {
+                mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
+            } else if (mycStat == "FM") {
+                mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+            } else if (mycStat == "NM") {
+                mycZOI = 1.0;
+            }
+        }
+    }
+    if (ss.good()) {
+        ss >> mycCOMP;
+    }
+    if (!ss.good()) {
+        if (mycStat == "OM") {
+            mycCOMP = ((rng.rng() |0x01u) / ((double) UINT32_MAX) / 2.0); // generates random number between 0 (0x01u) and 2.0
+        } else if (mycStat == "FM") {
+            mycCOMP = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+        } else if (mycStat == "NM") {
+            mycCOMP = 1.0;
+        }
+    }
+    if (ss.good()) {
+        ss >> mycCin;
+        mycC = mycCin/100.0;
+    }
+    if (!ss.good()) {
+        if (mycStat == "OM") {
+            mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+        } else if (mycStat == "FM") {
+            mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+        } else if (mycStat == "NM") {
+            mycC = 0;
+        }
+    }
     // optimization for maxMass calculation
     maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
-    mycC = mycCin/100.0;
-#if 0
-    // set random values for mycZOI, mycCOMP, and mycC
-    // based on mycStat (OM: obligatory, FM: facultatively, NM: non-mycorrhizal)
-    // incl. error message
-    if (mycStat == "OM") {
-        mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
-        mycCOMP = ((rng.rng() |0x01u) / ((double) UINT32_MAX) / 2.0); // generates random number between 0 (0x01u) and 2.0
-        mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
-
-    } else if (mycStat == "FM") {
-        mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
-        mycCOMP = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
-        mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
-
-    } else if (mycStat == "NM") {
-        mycZOI = 1.0;
-        mycCOMP = 1.0;
-        mycC = 0;
-
-    } else {
-        std::cerr << "invalid mycStat: '" << mycStat << "'\n";
-    }
-#endif
-    std::cerr << mycStat << " mycZOI:" << mycZOI << " mycCOMP:" << mycCOMP << " mycC:" << mycC << "\n";
 }
 
-#if 0
-/*
- * Copy constructor
- */
-Traits::Traits(const Traits& s) :
-        myTraitType(s.myTraitType), PFT_ID(s.PFT_ID),
-        LMR(s.LMR), SLA(s.SLA), RAR(s.RAR), m0(s.m0), maxMass(s.maxMass),
-        allocSeed(s.allocSeed), seedMass(s.seedMass), dispersalDist(s.dispersalDist), dormancy(s.dormancy), pEstab(s.pEstab),
-        Gmax(s.Gmax), palat(s.palat), memory(s.memory),
-        mThres(s.mThres), growth(s.growth), flowerWeek(s.flowerWeek), dispersalWeek(s.dispersalWeek),
-        clonal(s.clonal), meanSpacerlength(s.meanSpacerlength), sdSpacerlength(s.sdSpacerlength),
-        allocSpacer(s.allocSpacer), resourceShare(s.resourceShare), mSpacer(s.mSpacer), maxMassPow_4_3rd(s.maxMassPow_4_3rd)
-{
-
-}
-#endif
 /**
  * Retrieve a deep-copy some arbitrary trait set (for plants dropping seeds)
  */

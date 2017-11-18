@@ -226,7 +226,6 @@ double Plant::ShootGrow(double shres)
 	// exponents for growth function
 	double p = 2.0 / 3.0;
 	double q = 2.0;
-	double r = 4.0 / 3.0;
 
     Assim_shoot = traits->growth * min(shres, traits->Gmax * Ash_disc);                                                        //growth limited by maximal resource per area -> similar to uptake limitation
     Resp_shoot = traits->growth * traits->SLA * pow(traits->LMR, p) * traits->Gmax * pow(mShoot, q) / traits->maxMassPow_4_3rd; //respiration proportional to mshoot^2
@@ -245,7 +244,6 @@ double Plant::RootGrow(double rres)
 
 	//exponents for growth function
 	double q = 2.0;
-	double r = 4.0 / 3.0;
 
 	Assim_root = traits->growth * min(rres, traits->Gmax * Art_disc); //growth limited by maximal resource per area -> similar to uptake limitation
     Resp_root = traits->growth * traits->Gmax * traits->RAR * pow(mRoot, q) / traits->maxMassPow_4_3rd;  //respiration proportional to root^2
