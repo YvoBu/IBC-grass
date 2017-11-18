@@ -66,6 +66,16 @@ Traits::Traits(std::string line) :
                 mycZOI = 1.0;
             }
         }
+    } else {
+        if (!ss.good()) {
+            if (mycStat == "OM") {
+                mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
+            } else if (mycStat == "FM") {
+                mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+            } else if (mycStat == "NM") {
+                mycZOI = 1.0;
+            }
+        }
     }
     if (ss.good()) {
         ss >> mycCOMP;

@@ -268,6 +268,7 @@ void Plant::Kill(double aBackgroundMortality)
 
     double pmort = (double(isStressed) / double(traits->memory)) + aBackgroundMortality; // stress mortality + random background mortality
     double amort = rng.rng() / (double) UINT32_MAX;
+
     if (amort < pmort)
 	{
 		isDead = true;
