@@ -4,6 +4,8 @@
 /data/in/
 /data/out/
 /util/setup/tmp/
+/src/ibcgrass
+/src/depend
 
 # Created by https://www.gitignore.io/api/r,c++,macos,python,qtcreator
 
