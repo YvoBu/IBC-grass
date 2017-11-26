@@ -16,11 +16,13 @@ static const double Pi = std::atan(1) * 4;
 class Seed;
 class Cell;
 class Genet;
+class CMycorrhiza;
 
 class Plant
 {
 private:
-	Cell* cell;
+    Cell*        cell;
+    CMycorrhiza* myc;
 
     double ReproGrow(double uptake, int aWeek);
 	double ShootGrow(double shres);

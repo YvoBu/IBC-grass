@@ -6,6 +6,8 @@
 
 #include "CThread.h"
 #include "itv_mode.h"
+#include "Plant.h"
+#include "mycorrhiza.h"
 #include "Grid.h"
 #include "Output.h"
 #include "GridEnvir.h"

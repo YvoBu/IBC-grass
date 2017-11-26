@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "itv_mode.h"
+#include "Plant.h"
 #include "Output.h"
 #include "Environment.h"
 

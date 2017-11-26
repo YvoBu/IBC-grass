@@ -11,6 +11,8 @@
 
 using namespace std;
 
+extern RandomGenerator rng;
+
 //-----------------------------------------------------------------------------
 
 Cell::Cell(const unsigned int xx, const unsigned int yy) :

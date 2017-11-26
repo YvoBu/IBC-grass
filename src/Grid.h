@@ -18,12 +18,11 @@ class Grid : public Environment
 {
 
 private:
-    std::vector<int> ZOIBase;
+    std::vector<int>                      ZOIBase;
     std::vector< std::shared_ptr<Genet> > GenetList;
     void establishRamets(const std::shared_ptr<Plant> plant); 	// establish ramets
     void shareResources();                						// share resources among connected ramets
     void establishSeedlings(const std::unique_ptr<Seed> & seed);
-
 protected:
     void CoverCells();					// assigns grid cells to plants - which cell is covered by which plant
     void RemovePlants(); 				// removes dead plants from the grid and deletes them
@@ -45,9 +44,10 @@ protected:
     void SetCellResources();			// Populates the grid with resources (weekly)
 
 public:
-    Cell** CellList;    								// array of pointers to CCell
+    Cell**                                CellList;		// array of pointers to CCell
     std::vector< std::shared_ptr<Plant> > PlantList;    // plant individuals
-    std::vector<int> below_biomass_history;
+    std::vector<int>                      below_biomass_history;
+    CMycorrhiza                           myc;
 
     Grid();
     ~Grid();

@@ -10,10 +10,9 @@
 #include "Environment.h"
 
 #include "RandomGenerator.h"
-#include "Output.h"
-#include "IBC-grass.h"
 
 using namespace std;
+extern RandomGenerator rng;
 
 /*
  * Default constructor

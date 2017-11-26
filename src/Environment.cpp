@@ -7,6 +7,7 @@
 #include "Traits.h"
 #include "Environment.h"
 #include "RandomGenerator.h"
+#include "Plant.h"
 #include "Output.h"
 #include "IBC-grass.h"
 

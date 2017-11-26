@@ -13,7 +13,8 @@ SRC=Cell.cpp\
     Seed.cpp\
     Traits.cpp\
     CThread.cpp\
-    CSimulation.cpp
+    CSimulation.cpp\
+    mycorrhiza.cpp
 
 OBJ=$(SRC:.cpp=.o)
 

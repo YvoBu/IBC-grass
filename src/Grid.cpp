@@ -5,6 +5,8 @@
 #include <math.h>
 
 #include "itv_mode.h"
+#include "Plant.h"
+#include "mycorrhiza.h"
 #include "Grid.h"
 #include "Environment.h"
 #include "RandomGenerator.h"
@@ -12,6 +14,8 @@
 #include "IBC-grass.h"
 
 using namespace std;
+
+extern RandomGenerator rng;
 
 //---------------------------------------------------------------------------
 

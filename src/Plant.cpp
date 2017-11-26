@@ -14,6 +14,8 @@
 
 using namespace std;
 
+extern RandomGenerator rng;
+
 //-----------------------------------------------------------------------------
 /**
  * constructor - germination
