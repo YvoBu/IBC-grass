@@ -187,21 +187,10 @@ void Environment::ReadPFTDef(const string& file)
     getline(InitFile, line); // skip header line
     while (getline(InitFile, line))
     {
-        Traits* trait = new Traits(line);
-        pftTraitTemplates.insert(std::pair<std::string, Traits*>(trait->PFT_ID, trait));
-        pftInsertionOrder.push_back(trait->PFT_ID);
+        Traits trait(line);
+        pftTraitTemplates.insert(std::pair<std::string, Traits>(trait.PFT_ID, trait));
+        pftInsertionOrder.push_back(trait.PFT_ID);
     }
 }
-
-/**
- * Retrieve a deep-copy of that PFT's basic trait set
- */
-unique_ptr<Traits> Environment::createTraitSetFromPftType(string type)
-{
-    const auto pos = pftTraitTemplates.find(type);
-
-    return (make_unique<Traits>(*pos->second));
-}
-
 
 

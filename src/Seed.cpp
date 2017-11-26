@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "itv_mode.h"
-#include "Seed.h"
 #include "Traits.h"
+#include "Seed.h"
 #include "Environment.h"
 #include "Plant.h"
 
@@ -16,18 +16,16 @@ using namespace std;
 /*
  * Constructor for normal reproduction
  */
-Seed::Seed(const unique_ptr<Traits> & t, Cell* _cell, ITV_mode itv, double aSD) :
+Seed::Seed(const Traits & t, Cell* _cell, ITV_mode itv, double aSD) : Traits(t),
 		cell(NULL),
 		age(0), toBeRemoved(false)
 {
-    traits = make_unique<Traits>(*t);
-
     if (itv == on) {
-        traits->varyTraits(aSD);
+        varyTraits(aSD);
 	}
 
-	pEstab = traits->pEstab;
-	mass = traits->seedMass;
+    pEstab = pEstab;
+    mass = seedMass;
 
 	assert(this->cell == NULL);
 	this->cell = _cell;
@@ -38,18 +36,16 @@ Seed::Seed(const unique_ptr<Traits> & t, Cell* _cell, ITV_mode itv, double aSD) 
 /*
  * Constructor for initial establishment (with germination pre-set)
  */
-Seed::Seed(const unique_ptr<Traits> & t, Cell*_cell, double new_estab, ITV_mode itv, double aSD) :
+Seed::Seed(const Traits & t, Cell*_cell, double new_estab, ITV_mode itv, double aSD) : Traits(t),
 		cell(NULL),
 		age(0), toBeRemoved(false)
 {
-    traits = make_unique<Traits>(*t);
-
     if (itv == on) {
-        traits->varyTraits(aSD);
+        varyTraits(aSD);
 	}
 
 	pEstab = new_estab;
-	mass = traits->seedMass;
+    mass = seedMass;
 
 	assert(this->cell == NULL);
 	this->cell = _cell;

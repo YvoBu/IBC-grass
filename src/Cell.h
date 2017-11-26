@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include "Traits.h"
 #include "Plant.h"
 #include "Seed.h"
 

@@ -26,24 +26,23 @@ extern RandomGenerator rng;
 
 int Plant::staticID = 0;
 
-Plant::Plant(const unique_ptr<Seed> & seed, ITV_mode itv) :
+Plant::Plant(const unique_ptr<Seed> & seed, ITV_mode itv) : Traits(*seed),
 		cell(NULL), mReproRamets(0), genet(),
 		plantID(++staticID), x(0), y(0),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
-		isStressed(0), isDead(false), toBeRemoved(false),
-		spacerLengthToGrow(0)
+        isStressed(0), isDead(false), toBeRemoved(false)
 {
-
-    traits = make_unique<Traits>(*(seed->traits));
+    myc = 0;
+    spacerLengthToGrow = 0;
 
     if (itv == on) {
-		assert(traits->myTraitType == Traits::individualized);
+        assert(myTraitType == Traits::individualized);
 	} else {
-		assert(traits->myTraitType == Traits::species);
+        assert(myTraitType == Traits::species);
 	}
 
-	mShoot = traits->m0;
-	mRoot = traits->m0;
+    mShoot = m0;
+    mRoot = m0;
 
 	//establish this plant on cell
 	setCell(seed->getCell());
@@ -59,24 +58,23 @@ Plant::Plant(const unique_ptr<Seed> & seed, ITV_mode itv) :
  * Clonal Growth - The new Plant inherits its parameters from 'plant'.
  * Genet is the same as for plant
  */
-Plant::Plant(double x, double y, const std::shared_ptr<Plant> & plant, ITV_mode itv) :
+Plant::Plant(double x, double y, const std::shared_ptr<Plant> & plant, ITV_mode itv) : Traits(*plant),
 		cell(NULL), mReproRamets(0), genet(plant->genet),
 		plantID(++staticID), x(x), y(y),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
-		isStressed(0), isDead(false), toBeRemoved(false),
-		spacerLengthToGrow(0)
+        isStressed(0), isDead(false), toBeRemoved(false)
 {
-
-    traits = make_unique<Traits>(*(plant->traits));
+    myc = 0;
+    spacerLengthToGrow = 0;
 
     if (itv == on) {
-		assert(traits->myTraitType == Traits::individualized);
+        assert(myTraitType == Traits::individualized);
 	} else {
-		assert(traits->myTraitType == Traits::species);
+        assert(myTraitType == Traits::species);
 	}
 
-	mShoot = traits->m0;
-	mRoot = traits->m0;
+    mShoot = m0;
+    mRoot = m0;
 }
 
 //---------------------------------------------------------------------------
@@ -112,28 +110,28 @@ double Plant::ReproGrow(double uptake, int aWeek)
 	double VegRes;
 
 	//fixed Proportion of resource to seed production
-	if (mRepro <= traits->allocSeed * mShoot)
+    if (mRepro <= allocSeed * mShoot)
 	{
-		double SeedRes = uptake * traits->allocSeed;
-		double SpacerRes = uptake * traits->allocSpacer;
+        double SeedRes = uptake * allocSeed;
+        double SpacerRes = uptake * allocSpacer;
 
 		// during the seed-production-weeks
-        if ((aWeek >= traits->flowerWeek) && (aWeek < traits->dispersalWeek))
+        if ((aWeek >= flowerWeek) && (aWeek < dispersalWeek))
 		{
 			//seed production
-			double dm_seeds = max(0.0, traits->growth * SeedRes);
+            double dm_seeds = max(0.0, growth * SeedRes);
 			mRepro += dm_seeds;
 
 			//clonal growth
 			double d = max(0.0, min(SpacerRes, uptake - SeedRes)); // for large AllocSeed, resources may be < SpacerRes, then only take remaining resources
-			mReproRamets += max(0.0, traits->growth * d);
+            mReproRamets += max(0.0, growth * d);
 
 			VegRes = uptake - SeedRes - d;
 		}
 		else
 		{
 			VegRes = uptake - SpacerRes;
-			mReproRamets += max(0.0, traits->growth * SpacerRes);
+            mReproRamets += max(0.0, growth * SpacerRes);
 		}
 
 	}
@@ -160,7 +158,7 @@ void Plant::SpacerGrow() {
 
 	for (auto const& Spacer : growingSpacerList)
 	{
-		Spacer->spacerLengthToGrow = max(0.0, Spacer->spacerLengthToGrow - (mGrowSpacer / traits->mSpacer));
+        Spacer->spacerLengthToGrow = max(0.0, Spacer->spacerLengthToGrow - (mGrowSpacer / mSpacer));
 	}
 
 	mReproRamets = 0;
@@ -229,8 +227,8 @@ double Plant::ShootGrow(double shres)
 	double p = 2.0 / 3.0;
 	double q = 2.0;
 
-    Assim_shoot = traits->growth * min(shres, traits->Gmax * Ash_disc);                                                        //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_shoot = traits->growth * traits->SLA * pow(traits->LMR, p) * traits->Gmax * pow(mShoot, q) / traits->maxMassPow_4_3rd; //respiration proportional to mshoot^2
+    Assim_shoot = growth * min(shres, Gmax * Ash_disc);                                 //growth limited by maximal resource per area -> similar to uptake limitation
+    Resp_shoot = growth * SLA * pow(LMR, p) * Gmax * pow(mShoot, q) / maxMassPow_4_3rd; //respiration proportional to mshoot^2
 
 	return max(0.0, Assim_shoot - Resp_shoot);
 
@@ -247,8 +245,8 @@ double Plant::RootGrow(double rres)
 	//exponents for growth function
 	double q = 2.0;
 
-	Assim_root = traits->growth * min(rres, traits->Gmax * Art_disc); //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_root = traits->growth * traits->Gmax * traits->RAR * pow(mRoot, q) / traits->maxMassPow_4_3rd;  //respiration proportional to root^2
+    Assim_root = growth * min(rres, Gmax * Art_disc); //growth limited by maximal resource per area -> similar to uptake limitation
+    Resp_root = growth * Gmax * RAR * pow(mRoot, q) / maxMassPow_4_3rd;  //respiration proportional to root^2
 
 	return max(0.0, Assim_root - Resp_root);
 }
@@ -266,9 +264,9 @@ bool Plant::stressed() const
  */
 void Plant::Kill(double aBackgroundMortality)
 {
-	assert(traits->memory >= 1);
+    assert(memory >= 1);
 
-    double pmort = (double(isStressed) / double(traits->memory)) + aBackgroundMortality; // stress mortality + random background mortality
+    double pmort = (double(isStressed) / double(memory)) + aBackgroundMortality; // stress mortality + random background mortality
     double amort = rng.rng() / (double) UINT32_MAX;
 
     if (amort < pmort)
@@ -309,7 +307,7 @@ int Plant::ConvertReproMassToSeeds()
 
 	if (!isDead)
 	{
-		NSeeds = floor(mRepro / traits->seedMass);
+        NSeeds = floor(mRepro / seedMass);
 
 		mRepro = 0;
 	}
@@ -394,15 +392,15 @@ double Plant::comp_coef(const int layer, const int symmetry) const
 	{
 	case 1:
 		if (layer == 1)
-			return traits->Gmax;
+            return Gmax;
 		if (layer == 2)
-			return traits->Gmax;
+            return Gmax;
 		break;
 	case 2:
 		if (layer == 1)
-			return mShoot * traits->CompPowerA();
+            return mShoot * CompPowerA();
 		if (layer == 2)
-            return mRoot * traits->CompPowerB() * traits->mycCOMP;
+            return mRoot * CompPowerB() * mycCOMP;
 		break;
 	default:
 		cerr << "CPlant::comp_coef() - wrong input";

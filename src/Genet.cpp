@@ -22,7 +22,7 @@ void Genet::ResshareA()
 		auto ramet = ramet_ptr.lock();
 
 		double AddtoSum = 0;
-		double minres = ramet->traits->mThres * ramet->Ash_disc * ramet->traits->Gmax * 2;
+        double minres = ramet->mThres * ramet->Ash_disc * ramet->Gmax * 2;
 
 		AddtoSum = std::max(0.0, ramet->Auptake - minres);
 
@@ -59,7 +59,7 @@ void Genet::ResshareB()
 		assert(ramet);
 
 		double AddtoSum = 0;
-		double minres = ramet->traits->mThres * ramet->Art_disc * ramet->traits->Gmax * 2;
+        double minres = ramet->mThres * ramet->Art_disc * ramet->Gmax * 2;
 
 		AddtoSum = std::max(0.0, ramet->Buptake - minres);
 

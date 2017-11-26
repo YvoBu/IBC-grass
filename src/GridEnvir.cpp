@@ -363,18 +363,18 @@ void GridEnvir::print_trait()
 
         ss << getSimID()	<< ", ";
         ss << it.first 						<< ", ";
-        ss << it.second->LMR 				<< ", ";
-        ss << it.second->m0 				<< ", ";
-        ss << it.second->maxMass 			<< ", ";
-        ss << it.second->seedMass 			<< ", ";
-        ss << it.second->dispersalDist 		<< ", ";
-        ss << it.second->SLA 				<< ", ";
-        ss << it.second->palat 				<< ", ";
-        ss << it.second->Gmax 				<< ", ";
-        ss << it.second->memory 			<< ", ";
-        ss << it.second->clonal 			<< ", ";
-        ss << it.second->meanSpacerlength 	<< ", ";
-        ss << it.second->sdSpacerlength 	       ;
+        ss << it.second.LMR 				<< ", ";
+        ss << it.second.m0 				<< ", ";
+        ss << it.second.maxMass 			<< ", ";
+        ss << it.second.seedMass 			<< ", ";
+        ss << it.second.dispersalDist 		<< ", ";
+        ss << it.second.SLA 				<< ", ";
+        ss << it.second.palat 				<< ", ";
+        ss << it.second.Gmax 				<< ", ";
+        ss << it.second.memory 			<< ", ";
+        ss << it.second.clonal 			<< ", ";
+        ss << it.second.meanSpacerlength 	<< ", ";
+        ss << it.second.sdSpacerlength 	       ;
 
         output.print_row(ss, output.trait_stream);
     }
@@ -397,18 +397,18 @@ void GridEnvir::print_ind(const std::vector< std::shared_ptr<Plant> > & PlantLis
         ss << Environment::week 			<< ", ";
         ss << p->y 							<< ", ";
         ss << p->x 							<< ", ";
-        ss << p->traits->LMR 				<< ", ";
-        ss << p->traits->m0 				<< ", ";
-        ss << p->traits->maxMass 			<< ", ";
-        ss << p->traits->seedMass 			<< ", ";
-        ss << p->traits->dispersalDist 		<< ", ";
-        ss << p->traits->SLA 				<< ", ";
-        ss << p->traits->palat 				<< ", ";
-        ss << p->traits->Gmax 				<< ", ";
-        ss << p->traits->memory 			<< ", ";
-        ss << p->traits->clonal 			<< ", ";
-        ss << p->traits->meanSpacerlength 	<< ", ";
-        ss << p->traits->sdSpacerlength 	<< ", ";
+        ss << p->LMR 				<< ", ";
+        ss << p->m0 				<< ", ";
+        ss << p->maxMass 			<< ", ";
+        ss << p->seedMass 			<< ", ";
+        ss << p->dispersalDist 		<< ", ";
+        ss << p->SLA 				<< ", ";
+        ss << p->palat 				<< ", ";
+        ss << p->Gmax 				<< ", ";
+        ss << p->memory 			<< ", ";
+        ss << p->clonal 			<< ", ";
+        ss << p->meanSpacerlength 	<< ", ";
+        ss << p->sdSpacerlength 	<< ", ";
         ss << p->genet.lock()->genetID		<< ", ";
         ss << p->age 						<< ", ";
         ss << p->mShoot						<< ", ";
@@ -473,7 +473,7 @@ void GridEnvir::OutputGamma() {
     std::vector<std::shared_ptr<Plant> >::iterator pi;
     //
     //  Create counters from all PFTs
-    std::map< std::string, Traits* >::iterator ti;
+    std::map< std::string, Traits >::iterator ti;
 
     for (ti = pftTraitTemplates.begin(); ti != pftTraitTemplates.end(); ++ti) {
         pft[ti->first] = 0;
@@ -482,7 +482,7 @@ void GridEnvir::OutputGamma() {
     //  Count PFTs
     for (pi=PlantList.begin(); pi != PlantList.end(); ++pi) {
         if (!(*pi)->isDead) {
-            pft[(*pi)->traits->PFT_ID]++;
+            pft[(*pi)->PFT_ID]++;
         }
     }
     //

@@ -343,10 +343,10 @@ std::map<std::string, double> Output::calculateMeanTraits(const std::vector< std
             continue;
         }
 
-        weightedMeanTraits["LMR"] += p->traits->LMR;
-        weightedMeanTraits["MaxMass"] += p->traits->maxMass;
-        weightedMeanTraits["Gmax"] += p->traits->Gmax;
-        weightedMeanTraits["SLA"] += p->traits->SLA;
+        weightedMeanTraits["LMR"] += p->LMR;
+        weightedMeanTraits["MaxMass"] += p->maxMass;
+        weightedMeanTraits["Gmax"] += p->Gmax;
+        weightedMeanTraits["SLA"] += p->SLA;
 
         ++pop;
     }

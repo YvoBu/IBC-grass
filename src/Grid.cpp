@@ -99,20 +99,20 @@ void Grid::PlantLoop()
     for (auto const& p : PlantList)
     {
         if (ITV == on)
-            assert(p->traits->myTraitType == Traits::individualized);
+            assert(p->myTraitType == Traits::individualized);
 
         if (!p->isDead)
         {
             p->Grow(week);
 
-            if (p->traits->clonal)
+            if (p->clonal)
             {
                 DisperseRamets(p);
                 p->SpacerGrow();
             }
 
 //			if (CEnvir::week >= p->Traits->DispWeek)
-            if (week > p->traits->dispersalWeek)
+            if (week > p->dispersalWeek)
             {
                 DisperseSeeds(p);
             }
@@ -162,14 +162,18 @@ void Grid::DisperseSeeds(const std::shared_ptr<Plant> & plant)
 
         // lognormal dispersal kernel. This function changes X & Y by reference!
         getTargetCell(x, y,
-                plant->traits->dispersalDist * 100,  // meters -> cm
-                plant->traits->dispersalDist * 100); // mean = std (simple assumption)
+                plant->dispersalDist * 100,  // meters -> cm
+                plant->dispersalDist * 100); // mean = std (simple assumption)
 
         Torus(x, y); // recalculates position for torus
 
         Cell* cell = CellList[x * GridSize + y];
 
-        cell->SeedBankList.push_back(make_unique<Seed>(createTraitSetFromPftType(plant->traits->PFT_ID), cell, ITV, ITVsd));
+        std::map<std::string, Traits>::iterator ti = pftTraitTemplates.find(plant->PFT_ID);
+
+        if (ti != pftTraitTemplates.end()) {
+            cell->SeedBankList.push_back(make_unique<Seed>(ti->second, cell, ITV, ITVsd));
+        }
     }
 }
 
@@ -177,11 +181,11 @@ void Grid::DisperseSeeds(const std::shared_ptr<Plant> & plant)
 
 void Grid::DisperseRamets(const std::shared_ptr<Plant> & p)
 {
-    assert(p->traits->clonal);
+    assert(p->clonal);
 
     if (p->GetNRamets() == 1)
     {
-        double distance = std::abs(rng.getGaussian(p->traits->meanSpacerlength, p->traits->sdSpacerlength));
+        double distance = std::abs(rng.getGaussian(p->meanSpacerlength, p->sdSpacerlength));
 
         // uniformly distributed direction
         double direction = 2 * Pi * rng.get01();
@@ -299,9 +303,9 @@ void Grid::shareResources()
         {
             auto ramet = Genet->RametList.front().lock();
             assert(ramet);
-            assert(ramet->traits->clonal);
+            assert(ramet->clonal);
 
-            if (ramet->traits->resourceShare)
+            if (ramet->resourceShare)
             {
                 Genet->ResshareA();
                 Genet->ResshareB();
@@ -325,7 +329,7 @@ void Grid::EstablishmentLottery()
     {
         auto const& plant = PlantList[i];
 
-        if (plant->traits->clonal && !plant->isDead)
+        if (plant->clonal && !plant->isDead)
         {
             establishRamets(plant);
         }
@@ -372,6 +376,8 @@ void Grid::EstablishmentLottery()
 
 void Grid::establishSeedlings(const std::unique_ptr<Seed> & seed)
 {
+    //
+    //  This creates a new plant at the position of the seed.
     shared_ptr<Plant> p = make_shared<Plant>(seed, ITV);
 
     shared_ptr<Genet> genet = make_shared<Genet>();
@@ -460,7 +466,7 @@ void Grid::SeedMortalityAge()
 
         for (auto const& seed : cell->SeedBankList)
         {
-            if (seed->age >= seed->traits->dormancy)
+            if (seed->age >= seed->dormancy)
             {
                 seed->toBeRemoved = true;
             }
@@ -769,14 +775,18 @@ void Grid::SeedMortalityWinter()
  */
 void Grid::InitSeeds(string PFT_ID, const int n, const double estab)
 {
-    for (int i = 0; i < n; ++i)
-    {
-        int x = rng.getUniformInt(GridSize);
-        int y = rng.getUniformInt(GridSize);
+    std::map<std::string, Traits>::iterator ti = pftTraitTemplates.find(PFT_ID);
 
-        Cell* cell = CellList[x * GridSize + y];
+    if (ti != pftTraitTemplates.end()) {
+        for (int i = 0; i < n; ++i)
+        {
+            int x = rng.getUniformInt(GridSize);
+            int y = rng.getUniformInt(GridSize);
 
-        cell->SeedBankList.push_back(make_unique<Seed>(createTraitSetFromPftType(PFT_ID), cell, estab, ITV, ITVsd));
+            Cell* cell = CellList[x * GridSize + y];
+
+            cell->SeedBankList.push_back(make_unique<Seed>(ti->second, cell, estab, ITV, ITVsd));
+        }
     }
 }
 
@@ -935,7 +945,7 @@ int Grid::GetNPlants() //count non-clonal plants
     for (auto const& p : PlantList)
     {
         //only if its a non-clonal plant
-        if (!p->traits->clonal && !p->isDead)
+        if (!p->clonal && !p->isDead)
         {
             NPlants++;
         }
