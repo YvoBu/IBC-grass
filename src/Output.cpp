@@ -331,7 +331,7 @@ double Output::calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PF
     return BC_distance_sum / (double) BC_abundance_sum;
 }
 
-std::map<std::string, double> Output::calculateMeanTraits(const std::vector< std::shared_ptr<Plant> > & PlantList)
+std::map<std::string, double> Output::calculateMeanTraits(const std::vector< Plant* > & PlantList)
 {
     std::map<std::string, double> weightedMeanTraits;
     int pop = 0;

@@ -14,17 +14,17 @@ class Seed : public Traits
 
     public:
        double mass;
-       double pEstab;
+       double pSeedEstab;
        int age;
        bool toBeRemoved;
 
        Seed(const Traits& t, Cell* cell, ITV_mode itv, double aSD);
        Seed(const Traits& t, Cell* cell, const double estab, ITV_mode itv, double aSD);
 
-       Cell* getCell() { return cell; }
+       Cell* getCell() const { return cell; }
 
-       inline static bool GetSeedRemove(const std::unique_ptr<Seed> & s) {
-           return s->toBeRemoved;
+       inline static bool GetSeedRemove(const Seed& s) {
+           return s.toBeRemoved;
        };
 };
 

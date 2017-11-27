@@ -3,6 +3,7 @@
 #include <cassert>
 #include <memory>
 #include <math.h>
+#include <set>
 
 #include "itv_mode.h"
 #include "Plant.h"
@@ -96,32 +97,32 @@ void Grid::CellsInit()
 
 void Grid::PlantLoop()
 {
-    for (auto const& p : PlantList)
+    for (std::vector< Plant*>::iterator pi=PlantList.begin(); pi != PlantList.end(); ++pi)
     {
         if (ITV == on)
-            assert(p->myTraitType == Traits::individualized);
+            assert((*pi)->myTraitType == Traits::individualized);
 
-        if (!p->isDead)
+        if (!(*pi)->isDead)
         {
-            p->Grow(week);
+            (*pi)->Grow(week);
 
-            if (p->clonal)
+            if ((*pi)->clonal)
             {
-                DisperseRamets(p);
-                p->SpacerGrow();
+                DisperseRamets((*pi));
+                (*pi)->SpacerGrow();
             }
 
 //			if (CEnvir::week >= p->Traits->DispWeek)
-            if (week > p->dispersalWeek)
+            if (week > (*pi)->dispersalWeek)
             {
-                DisperseSeeds(p);
+                DisperseSeeds((*pi));
             }
 
-            p->Kill(backgroundMortality);
+            (*pi)->Kill(backgroundMortality);
         }
         else
         {
-            p->DecomposeDead(litterDecomp);
+            (*pi)->DecomposeDead(litterDecomp);
         }
     }
 }
@@ -149,7 +150,7 @@ void getTargetCell(int& xx, int& yy, const float mean, const float sd)
  * Disperses the seeds produced by a plant when seeds are to be released.
  * Each Seed is dispersed after an log-normal dispersal kernel in function getTargetCell().
  */
-void Grid::DisperseSeeds(const std::shared_ptr<Plant> & plant)
+void Grid::DisperseSeeds(Plant* plant)
 {
     int px = plant->getCell()->x;
     int py = plant->getCell()->y;
@@ -172,14 +173,14 @@ void Grid::DisperseSeeds(const std::shared_ptr<Plant> & plant)
         std::map<std::string, Traits>::iterator ti = pftTraitTemplates.find(plant->PFT_ID);
 
         if (ti != pftTraitTemplates.end()) {
-            cell->SeedBankList.push_back(make_unique<Seed>(ti->second, cell, ITV, ITVsd));
+            cell->Add(Seed(ti->second, cell, ITV, ITVsd));
         }
     }
 }
 
 //---------------------------------------------------------------------------
 
-void Grid::DisperseRamets(const std::shared_ptr<Plant> & p)
+void Grid::DisperseRamets(Plant* p)
 {
     assert(p->clonal);
 
@@ -196,7 +197,7 @@ void Grid::DisperseRamets(const std::shared_ptr<Plant> & p)
         Torus(x, y);
 
         // save distance and direction in the plant
-        std::shared_ptr<Plant> Spacer = make_shared<Plant>(x, y, p, ITV);
+        Plant* Spacer = new Plant(x, y, p, ITV);
         Spacer->spacerLengthToGrow = distance; // This spacer now has to grow to get to its new cell
         p->growingSpacerList.push_back(Spacer);
     }
@@ -301,9 +302,7 @@ void Grid::shareResources()
     {
         if (Genet->RametList.size() > 1) // A ramet cannot share with itself
         {
-            auto ramet = Genet->RametList.front().lock();
-            assert(ramet);
-            assert(ramet->clonal);
+            Plant* ramet = Genet->RametList.front();
 
             if (ramet->resourceShare)
             {
@@ -325,6 +324,7 @@ void Grid::EstablishmentLottery()
      */
 
     std::vector< shared_ptr<Plant>>::size_type original_size = PlantList.size();
+
     for (std::vector< shared_ptr<Plant> >::size_type i = 0; i < original_size; ++i)
     {
         auto const& plant = PlantList[i];
@@ -341,15 +341,19 @@ void Grid::EstablishmentLottery()
     {
         return;
     }
-
+    //
+    //  Go along all cells
     for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
-
-        if (!cell->AbovePlantList.empty() || cell->SeedBankList.empty() || cell->occupied)
+        //
+        //  Check if cell is ready for seeding
+        if (!cell->ReadyForSeeding())
         {
             continue;
         }
+
+ #if 1
 
         double sumSeedMass = cell->Germinate();
 
@@ -359,26 +363,34 @@ void Grid::EstablishmentLottery()
         }
 
         double n = rng.get01() * sumSeedMass;
-        for (auto const& itr : cell->SeedlingList)
+        for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
         {
             n -= itr->mass;
             if (n <= 0)
             {
-                establishSeedlings(itr);
+                establishSeedlings(*itr);
                 break;
             }
         }
         cell->SeedlingList.clear();
+#else
+        std::vector< Seed> seedlings = cell->Germinate();
+
+        if (!seedlings.empty()) {
+            //
+            //  Do some selection stuff from the list of seedsling ready.
+        }
+#endif
     }
 }
 
 //-----------------------------------------------------------------------------
 
-void Grid::establishSeedlings(const std::unique_ptr<Seed> & seed)
+void Grid::establishSeedlings(const Seed& seed)
 {
     //
     //  This creates a new plant at the position of the seed.
-    shared_ptr<Plant> p = make_shared<Plant>(seed, ITV);
+    Plant* p = new Plant(seed, ITV);
 
     shared_ptr<Genet> genet = make_shared<Genet>();
     GenetList.push_back(genet);
@@ -387,11 +399,12 @@ void Grid::establishSeedlings(const std::unique_ptr<Seed> & seed)
     p->setGenet(genet);
 
     PlantList.push_back(p);
+    myc.Add(p);
 }
 
 //-----------------------------------------------------------------------------
 
-void Grid::establishRamets(const std::shared_ptr<Plant> plant)
+void Grid::establishRamets(Plant* plant)
 {
     auto spacer_itr = plant->growingSpacerList.begin();
 
@@ -418,6 +431,9 @@ void Grid::establishRamets(const std::shared_ptr<Plant> plant)
                 Genet->RametList.push_back(spacer);
                 spacer->setCell(cell);
                 PlantList.push_back(spacer);
+                //
+                //  Add the spacer into the mycorrhiza object.
+                myc.Add(spacer);
             }
 
             // Regardless of establishment success, the iterator is removed from growingSpacerList
@@ -464,7 +480,7 @@ void Grid::SeedMortalityAge()
     {
         Cell* cell = CellList[i];
 
-        for (auto const& seed : cell->SeedBankList)
+        for (std::vector<Seed>::iterator seed= cell->SeedBankList.begin(); seed != cell->SeedBankList.end(); ++seed)
         {
             if (seed->age >= seed->dormancy)
             {
@@ -548,7 +564,7 @@ void Grid::GrazingAbvGr()
     while (MassRemoved < MaxMassRemove)
     {
         auto p = *std::max_element(PlantList.begin(), PlantList.end(),
-                        [](const shared_ptr<Plant> & a, const shared_ptr<Plant> & b)
+                        [](const Plant* a, const Plant* b)
                         {
                             return Plant::getPalatability(a) < Plant::getPalatability(b);
                         });
@@ -605,7 +621,7 @@ void Grid::GrazingBelGr()
 
     // Total living root biomass
     double bt = accumulate(PlantList.begin(), PlantList.end(), 0,
-                    [] (double s, const shared_ptr<Plant>& p)
+                    [] (double s, const Plant* p)
                     {
                         if ( !p->isDead )
                         {
@@ -689,10 +705,56 @@ void Grid::GrazingBelGr()
 
 void Grid::RemovePlants()
 {
+    //
+    //  Because the plants pointers are hold in various places we have to manage it at the given points.
+    //  First we collect all plant pointers that must be removed.
+    std::set<Plant*> plantptr;
+
+    for (std::vector<Plant*>::iterator pli=PlantList.begin(); pli != PlantList.end(); ) {
+        if ((*pli)->toBeRemoved) {
+            (*pli)->getCell()->occupied = false;
+            plantptr.insert(*pli);
+            pli=PlantList.erase(pli);
+            myc.Remove(*pli);
+        } else {
+            ++pli;
+        }
+    }
+    //
+    //  The PlantList has only working plants left.
+    //
+    //  Now go one through the Genet-Lists.
+    for (std::vector< std::shared_ptr<Genet> >::iterator gi=GenetList.begin(); gi != GenetList.end();) {
+        //
+        //  And withing go along the Ramets hold there.
+        std::shared_ptr<Genet> g = *gi;
+        std::set<Plant*>::iterator do_del;
+
+        for (std::vector<Plant*>::iterator pli = g->RametList.begin(); pli != g->RametList.end(); ) {
+            if ((*pli)->toBeRemoved) {
+                if (plantptr.find(*pli)== plantptr.end()) {
+                    std::cerr << "found plant in RametList that should not be there\n";
+                }
+                pli = g->RametList.erase(pli);
+            } else {
+                ++pli;
+            }
+        }
+        if (g->RametList.empty()) {
+            gi = GenetList.erase(gi);
+        } else {
+            ++gi;
+        }
+    }
+
+    for(std::set<Plant*>::iterator do_del = plantptr.begin(); do_del != plantptr.end(); ++do_del) {
+        delete *do_del;
+    }
+#if 0
     // Delete the CPlant shared_pointers
     PlantList.erase(
             std::remove_if(PlantList.begin(), PlantList.end(),
-                    [] (const shared_ptr<Plant> & p)
+                    [] (const Plant* p)
                     {
                         if ( Plant::GetPlantRemove(p) )
                         {
@@ -733,6 +795,7 @@ void Grid::RemovePlants()
                         return false;
                     }),
                     GenetList.end());
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -753,7 +816,7 @@ void Grid::SeedMortalityWinter()
     for (int i = 0; i < getGridArea(); ++i)
     {
         Cell* cell = CellList[i];
-        for (auto const& seed : cell->SeedBankList)
+        for (std::vector<Seed>::iterator seed=cell->SeedBankList.begin(); seed != cell->SeedBankList.end(); ++seed)
         {
             if (rng.get01() < seedMortality)
             {
@@ -785,7 +848,7 @@ void Grid::InitSeeds(string PFT_ID, const int n, const double estab)
 
             Cell* cell = CellList[x * GridSize + y];
 
-            cell->SeedBankList.push_back(make_unique<Seed>(ti->second, cell, estab, ITV, ITVsd));
+            cell->SeedBankList.push_back(Seed(ti->second, cell, estab, ITV, ITVsd));
         }
     }
 }
@@ -919,10 +982,9 @@ int Grid::GetNclonalPlants()
     {
         bool hasLivingRamet = false;
 
-        for (auto const& r_ptr : g->RametList)
+        for (std::vector<Plant*>::iterator r= g->RametList.begin(); r != g->RametList.end(); ++r)
         {
-            auto const& r = r_ptr.lock();
-            if (!r->isDead)
+            if (!(*r)->isDead)
             {
                 hasLivingRamet = true;
                 break;

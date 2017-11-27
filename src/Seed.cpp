@@ -23,8 +23,7 @@ Seed::Seed(const Traits & t, Cell* _cell, ITV_mode itv, double aSD) : Traits(t),
     if (itv == on) {
         varyTraits(aSD);
 	}
-
-    pEstab = pEstab;
+    pSeedEstab = pEstab;
     mass = seedMass;
 
 	assert(this->cell == NULL);
@@ -44,7 +43,7 @@ Seed::Seed(const Traits & t, Cell*_cell, double new_estab, ITV_mode itv, double 
         varyTraits(aSD);
 	}
 
-	pEstab = new_estab;
+    pSeedEstab = new_estab;
     mass = seedMass;
 
 	assert(this->cell == NULL);

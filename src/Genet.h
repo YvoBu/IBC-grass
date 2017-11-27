@@ -18,7 +18,7 @@ class Genet
 public:
    static int staticID;
    int genetID;
-   std::vector< std::weak_ptr<Plant> > RametList;
+   std::vector< Plant* > RametList;
 
    Genet():genetID(++staticID) { }
 

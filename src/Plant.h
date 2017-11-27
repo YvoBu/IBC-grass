@@ -56,12 +56,12 @@ public:
 	bool toBeRemoved;    			// Should the plant be removed from the PlantList?
 
 	// Clonal
-	std::vector< std::shared_ptr<Plant> > growingSpacerList;	// List of growing Spacer
+    std::vector< Plant* > growingSpacerList;	// List of growing Spacer
 	double spacerLengthToGrow;
 
 	// Constructors
-    Plant(const std::unique_ptr<Seed> & seed, ITV_mode itv); 						// from a germinated seed
-    Plant(double x, double y, const std::shared_ptr<Plant> & plant, ITV_mode itv); 	// for clonal establishment
+    Plant(const Seed & seed, ITV_mode itv); 						// from a germinated seed
+    Plant(double x, double y, const Plant* plant, ITV_mode itv); 	// for clonal establishment
 	~Plant();
 
     void Grow(int aWeek); 									 // shoot-root resource allocation and plant growth in two layers
@@ -88,23 +88,23 @@ public:
 	}
 
     inline double Area_shoot()		{ return SLA * pow(LMR * mShoot, 2.0 / 3.0); } // ZOI area
-    inline double Area_root()   	{ return RAR * pow(mRoot, 2.0 / 3.0) * mycZOI; }
+    inline double Area_root()   	{ return RAR * pow(mRoot, 2.0 / 3.0) * ((myc != 0)?mycZOI:1.0); }
     inline double Radius_shoot() 	{ return sqrt(SLA * pow(LMR * mShoot, 2.0 / 3.0) / Pi); } // ZOI radius
     inline double Radius_root() 	{ return sqrt(RAR * pow(mRoot, 2.0 / 3.0) / Pi); }
 
 	void setCell(Cell* cell);
-	inline Cell* getCell() { return cell; }
+    inline Cell* getCell() const { return cell; }
 
     inline std::string pft() { return this->PFT_ID; }
 
 	inline void setGenet(std::weak_ptr<Genet> _genet) { this->genet = _genet; }
 	inline std::weak_ptr<Genet> getGenet() { return genet; }
 
-	void SpacerGrow();  			// spacer growth
-	int ConvertReproMassToSeeds(); 	// returns number of seeds of one plant individual. Clears mRepro.
-	int GetNRamets() const;  		// return number of ramets
+    void SpacerGrow();  			        // spacer growth
+    int ConvertReproMassToSeeds(); 	// returns number of seeds of one plant individual. Clears mRepro.
+    int GetNRamets() const;  		        // return number of ramets
 
-	inline static double getPalatability(const std::shared_ptr<Plant> & p) {
+    inline static double getPalatability(const Plant* p) {
 		if (p->isDead)
 		{
 			return 0;
@@ -112,14 +112,18 @@ public:
         return p->mShoot * p->GrazFraction();
 	}
 
-	inline static double getShootGeometry(const std::shared_ptr<Plant> & p) {
+    inline static double getShootGeometry(const Plant* p) {
         return (p->mShoot / p->LMR);
 	}
 
 	// return if plant should be removed
-	inline static bool GetPlantRemove(const std::shared_ptr<Plant> & p) {
+    inline static bool GetPlantRemove(const Plant* p) {
 		return p->toBeRemoved;
 	}
+
+public:
+    void Attach(CMycorrhiza* aMyc) {myc = aMyc;};
+    void Detach(void) {myc = 0;};
 
 };
 

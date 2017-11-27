@@ -90,15 +90,16 @@ Traits::Traits(std::string line) :
     }
     if (ss.good()) {
         ss >> mycCin;
-        mycC = mycCin/100.0;
-    }
-    if (!ss.good()) {
-        if (mycStat == "OM") {
-            mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
-        } else if (mycStat == "FM") {
-            mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
-        } else if (mycStat == "NM") {
-            mycC = 0;
+        if (ss.bad()) {
+            if (mycStat == "OM") {
+                mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+            } else if (mycStat == "FM") {
+                mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+            } else if (mycStat == "NM") {
+                mycC = 0;
+            }
+        } else {
+            mycC = mycCin/100.0;
         }
     }
     // optimization for maxMass calculation

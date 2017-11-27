@@ -20,16 +20,16 @@ class Grid : public Environment
 private:
     std::vector<int>                      ZOIBase;
     std::vector< std::shared_ptr<Genet> > GenetList;
-    void establishRamets(const std::shared_ptr<Plant> plant); 	// establish ramets
+    void establishRamets(Plant* plant); 	                    // establish ramets
     void shareResources();                						// share resources among connected ramets
-    void establishSeedlings(const std::unique_ptr<Seed> & seed);
+    void establishSeedlings(const Seed  & seed);
 protected:
     void CoverCells();					// assigns grid cells to plants - which cell is covered by which plant
     void RemovePlants(); 				// removes dead plants from the grid and deletes them
     void PlantLoop();					// loop over all plants including growth, seed dispersal and mortality
     void DistributeResource();			// distributes resource to each plant --> calls competition functions
-    void DisperseSeeds(const std::shared_ptr<Plant> & plant);
-    void DisperseRamets(const std::shared_ptr<Plant> & plant); // initiate new ramets
+    void DisperseSeeds(Plant* plant);
+    void DisperseRamets(Plant* plant); // initiate new ramets
     void EstablishmentLottery();		// lottery competition for seedling establishment
     void Winter();						// calls seed mortality and mass removal of plants
     void ResetWeeklyVariables(); 		// Clears list of plants that cover each cell
@@ -44,10 +44,10 @@ protected:
     void SetCellResources();			// Populates the grid with resources (weekly)
 
 public:
-    Cell**                                CellList;		// array of pointers to CCell
-    std::vector< std::shared_ptr<Plant> > PlantList;    // plant individuals
-    std::vector<int>                      below_biomass_history;
-    CMycorrhiza                           myc;
+    Cell**               CellList;     // array of pointers to CCell
+    std::vector< Plant*> PlantList;    // plant individuals. This is the anchor place for the plant objects.
+    std::vector<int>     below_biomass_history;
+    CMycorrhiza          myc;
 
     Grid();
     ~Grid();

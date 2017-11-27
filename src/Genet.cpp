@@ -17,29 +17,24 @@ void Genet::ResshareA()
   double sumAuptake=0;
   double MeanAuptake=0;
 
-	for (auto const& ramet_ptr : RametList)
-	{
-		auto ramet = ramet_ptr.lock();
-
+  for (std::vector<Plant*>::iterator ramet = RametList.begin(); ramet != RametList.end(); ramet++)
+    {
 		double AddtoSum = 0;
-        double minres = ramet->mThres * ramet->Ash_disc * ramet->Gmax * 2;
+        double minres = (*ramet)->mThres * (*ramet)->Ash_disc * (*ramet)->Gmax * 2;
 
-		AddtoSum = std::max(0.0, ramet->Auptake - minres);
+        AddtoSum = std::max(0.0, (*ramet)->Auptake - minres);
 
 		if (AddtoSum > 0)
 		{
-			ramet->Auptake = minres;
+            (*ramet)->Auptake = minres;
 			sumAuptake += AddtoSum;
 		}
 	}
 	MeanAuptake = sumAuptake / RametList.size();
 
-	for (auto const& ramet_ptr : RametList)
-	{
-		auto ramet = ramet_ptr.lock();
-		assert(ramet);
-
-		ramet->Auptake += MeanAuptake;
+    for (std::vector<Plant*>::iterator ramet = RametList.begin(); ramet != RametList.end(); ramet++)
+    {
+        (*ramet)->Auptake += MeanAuptake;
 	}
 }
 
@@ -53,29 +48,24 @@ void Genet::ResshareB()
 	double sumBuptake = 0;
 	double MeanBuptake = 0;
 
-	for (auto const& ramet_ptr : RametList)
-	{
-		auto ramet = ramet_ptr.lock();
-		assert(ramet);
-
+    for (std::vector<Plant*>::iterator ramet = RametList.begin(); ramet != RametList.end(); ramet++)
+    {
 		double AddtoSum = 0;
-        double minres = ramet->mThres * ramet->Art_disc * ramet->Gmax * 2;
+        double minres = (*ramet)->mThres * (*ramet)->Art_disc * (*ramet)->Gmax * 2;
 
-		AddtoSum = std::max(0.0, ramet->Buptake - minres);
+        AddtoSum = std::max(0.0, (*ramet)->Buptake - minres);
 
 		if (AddtoSum > 0)
 		{
-			ramet->Buptake = minres;
+            (*ramet)->Buptake = minres;
 			sumBuptake += AddtoSum;
 		}
 	}
 
 	MeanBuptake = sumBuptake / RametList.size();
 
-	for (auto const& ramet_ptr : RametList)
-	{
-		auto ramet = ramet_ptr.lock();
-
-		ramet->Buptake += MeanBuptake;
+    for (std::vector<Plant*>::iterator ramet = RametList.begin(); ramet != RametList.end(); ramet++)
+    {
+        (*ramet)->Buptake += MeanBuptake;
 	}
 }

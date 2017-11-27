@@ -175,7 +175,7 @@ void GridEnvir::OneWeek()
         }
         OutputGamma();
     }
-
+    myc.UpdatePool();
 }
 
 //-----------------------------------------------------------------------------
@@ -189,7 +189,21 @@ bool GridEnvir::exitConditions()
     int NPlants = GetNPlants();
     int NClPlants = GetNclonalPlants();
     int NSeeds = GetNSeeds();
+    int FreeCells = 0;
 
+    for (int i = 0; i < getGridArea(); ++i)
+    {
+        Cell* cell = CellList[i];
+
+        if (cell->ReadyForSeeding()) {
+            FreeCells++;
+        }
+    }
+
+
+
+
+    std::cerr << "Plants: " << NPlants << " Clonal: " << NClPlants << " Seeds: " << NSeeds << " Free Cells: " << FreeCells << std::endl;
     // if no more individuals existing
     if ((NPlants + NClPlants + NSeeds) == 0) {
         return true; //extinction time
@@ -266,7 +280,7 @@ void GridEnvir::print_param()
     output.print_row(ss, output.param_stream);
 }
 
-void GridEnvir::print_srv_and_PFT(const std::vector< std::shared_ptr<Plant> > & PlantList)
+void GridEnvir::print_srv_and_PFT(const std::vector< Plant* > & PlantList)
 {
 
     // Create the data structure necessary to aggregate individuals
@@ -328,7 +342,7 @@ void GridEnvir::print_srv_and_PFT(const std::vector< std::shared_ptr<Plant> > & 
     PFT_map.clear();
 }
 
-map<string, PFT_struct> GridEnvir::buildPFT_map(const std::vector< std::shared_ptr<Plant> > & PlantList)
+map<string, PFT_struct> GridEnvir::buildPFT_map(const std::vector< Plant* > & PlantList)
 {
     map<string, PFT_struct> PFT_map;
 
@@ -374,7 +388,13 @@ void GridEnvir::print_trait()
         ss << it.second.memory 			<< ", ";
         ss << it.second.clonal 			<< ", ";
         ss << it.second.meanSpacerlength 	<< ", ";
-        ss << it.second.sdSpacerlength 	       ;
+        ss << it.second.sdSpacerlength 	 << ", "  ;
+        ss << it.second.mycStat 	 << ", "  ;
+        ss << it.second.mycZOI 	 << ", "  ;
+        ss << it.second.mycCOMP 	 << ", "  ;
+        ss << it.second.mycC 	  ;
+
+
 
         output.print_row(ss, output.trait_stream);
     }
@@ -382,7 +402,7 @@ void GridEnvir::print_trait()
 }
 
 
-void GridEnvir::print_ind(const std::vector< std::shared_ptr<Plant> > & PlantList)
+void GridEnvir::print_ind(const std::vector< Plant* > & PlantList)
 {
     for (auto const& p : PlantList)
     {
@@ -422,7 +442,7 @@ void GridEnvir::print_ind(const std::vector< std::shared_ptr<Plant> > & PlantLis
         output.print_row(ss, output.ind_stream);
     }
 }
-void GridEnvir::print_aggregated(const std::vector< std::shared_ptr<Plant> > & PlantList)
+void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
 {
 
     auto PFT_map = buildPFT_map(PlantList);
@@ -470,7 +490,7 @@ void GridEnvir::OutputGamma() {
     pthread_mutex_lock(&GridEnvir::gammalock);
     std::map<std::string, long> pft;
     std::map<std::string, long>::iterator pfti;
-    std::vector<std::shared_ptr<Plant> >::iterator pi;
+    std::vector< Plant* >::iterator pi;
     //
     //  Create counters from all PFTs
     std::map< std::string, Traits >::iterator ti;

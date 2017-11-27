@@ -12,6 +12,8 @@
 #include "Output.h"
 #include "IBC-grass.h"
 
+#include "mycorrhiza.h"
+
 using namespace std;
 
 extern RandomGenerator rng;
@@ -26,7 +28,7 @@ extern RandomGenerator rng;
 
 int Plant::staticID = 0;
 
-Plant::Plant(const unique_ptr<Seed> & seed, ITV_mode itv) : Traits(*seed),
+Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
 		cell(NULL), mReproRamets(0), genet(),
 		plantID(++staticID), x(0), y(0),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
@@ -45,7 +47,7 @@ Plant::Plant(const unique_ptr<Seed> & seed, ITV_mode itv) : Traits(*seed),
     mRoot = m0;
 
 	//establish this plant on cell
-	setCell(seed->getCell());
+    setCell(seed.getCell());
 	if (cell)
 	{
 		x = cell->x;
@@ -58,7 +60,7 @@ Plant::Plant(const unique_ptr<Seed> & seed, ITV_mode itv) : Traits(*seed),
  * Clonal Growth - The new Plant inherits its parameters from 'plant'.
  * Genet is the same as for plant
  */
-Plant::Plant(double x, double y, const std::shared_ptr<Plant> & plant, ITV_mode itv) : Traits(*plant),
+Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*plant),
 		cell(NULL), mReproRamets(0), genet(plant->genet),
 		plantID(++staticID), x(x), y(y),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
@@ -183,9 +185,24 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 	/********************************************/
 	/*  dm/dt = growth*(c*m^p - m^q / m_max^r)  */
 	/********************************************/
+    //
+    //  We have mycorrhiza support.
+    if (myc != 0) {
+        //
+        //  Buptake is limiting. Ask for help.
+        if (Buptake < Auptake) {
+            double res = Auptake * mycC;
 
-	// which resource is limiting growth?
-	LimRes = min(Buptake, Auptake); // two layers
+            Auptake-=res;
+
+            Buptake+= myc->HelpMe(res);
+        } else {
+        }
+    } else {
+    }
+    // which resource is limiting growth?
+    LimRes = min(Buptake, Auptake); // two layers
+
     VegRes = ReproGrow(LimRes, aWeek);
 	// allocation to shoot and root growth
 	alloc_shoot = Buptake / (Buptake + Auptake); // allocation coefficient
@@ -400,7 +417,7 @@ double Plant::comp_coef(const int layer, const int symmetry) const
 		if (layer == 1)
             return mShoot * CompPowerA();
 		if (layer == 2)
-            return mRoot * CompPowerB() * mycCOMP;
+            return mRoot * CompPowerB() * ((myc != 0)?mycCOMP:1.0);
 		break;
 	default:
 		cerr << "CPlant::comp_coef() - wrong input";

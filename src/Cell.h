@@ -23,12 +23,12 @@ public:
 
     bool occupied;       // is the cell occupied by any plant?
 
-    std::vector< std::weak_ptr<Plant> > AbovePlantList; // List of all plant individuals that cover the cell ABOVE ground
-    std::vector< std::weak_ptr<Plant> > BelowPlantList; // List of all plant individuals that cover the cell BELOW ground
-
-    std::vector< std::unique_ptr<Seed> > SeedBankList; // List of all (ungerminated) seeds in the cell
-    std::vector< std::unique_ptr<Seed> > SeedlingList; // List of all freshly germinated seedlings in the cell
-
+    std::vector< Plant*> AbovePlantList; // List of all plant individuals that cover the cell ABOVE ground
+    std::vector< Plant*> BelowPlantList; // List of all plant individuals that cover the cell BELOW ground
+public:
+    std::vector< Seed > SeedBankList; // List of all (ungerminated) seeds in the cell
+    std::vector< Seed > SeedlingList; // List of all freshly germinated seedlings in the cell
+public:
     std::map<std::string, int> PftNIndA; // Plants covering the cell aboveground
     std::map<std::string, int> PftNIndB; // Plants covering the cell belowground
 
@@ -37,9 +37,15 @@ public:
 
     virtual ~Cell();
 
+    void Add(const Seed& aSeed) {SeedBankList.push_back(aSeed) ;};
+    bool ReadyForSeeding() {if ((!AbovePlantList.empty()) || SeedBankList.empty() || occupied) { return false; } else { return true;}};
+
     void weeklyReset();
     void SetResource(double Ares, double Bres);
     double Germinate();
+#if 0
+    std::vector<Seed> Germinate();
+#endif
     void RemoveSeeds();
 
     /* competition function for size symmetric above-ground resource competition
