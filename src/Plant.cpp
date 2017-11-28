@@ -83,7 +83,6 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
 
 Plant::~Plant()
 {
-#if 0
     //
     //  Because the growing spacers are not part of the plantlist we need to
     //  delete the spacers if the plant gets deleted.
@@ -92,7 +91,6 @@ Plant::~Plant()
     for (pi = growingSpacerList.begin(); pi != growingSpacerList.end(); ++pi) {
         delete *pi;
     }
-#endif
 }
 
 void Plant::weeklyReset()
