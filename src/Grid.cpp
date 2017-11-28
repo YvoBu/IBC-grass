@@ -493,16 +493,7 @@ void Grid::SeedMortalityAge()
 {
     for (int i = 0; i < getGridArea(); ++i)
     {
-        Cell* cell = CellList[i];
-
-        for (std::vector<Seed>::iterator seed= cell->SeedBankList.begin(); seed != cell->SeedBankList.end(); ++seed)
-        {
-            if (seed->age >= seed->dormancy)
-            {
-                seed->toBeRemoved = true;
-            }
-        }
-        cell->RemoveSeeds();
+        CellList[i]->SeedMortalityAge();
     }
 }
 
@@ -764,52 +755,6 @@ void Grid::RemovePlants()
     for(std::set<Plant*>::iterator do_del = plantptr.begin(); do_del != plantptr.end(); ++do_del) {
         delete *do_del;
     }
-#if 0
-    // Delete the CPlant shared_pointers
-    PlantList.erase(
-            std::remove_if(PlantList.begin(), PlantList.end(),
-                    [] (const Plant* p)
-                    {
-                        if ( Plant::GetPlantRemove(p) )
-                        {
-                            p->getCell()->occupied = false;
-                            return true;
-                        }
-                        return false;
-                    }),
-                    PlantList.end());
-
-
-    // Clear out dead pointers in the AllRametsList held by each genet
-    auto eraseExpiredRamet = []( const std::weak_ptr<Plant> & r )
-    {
-        if (r.expired())
-        {
-            return true;
-        }
-        return false;
-    };
-
-    std::for_each(GenetList.begin(), GenetList.end(),
-            [eraseExpiredRamet] (std::shared_ptr<Genet> const& g)
-            {
-                auto& r = g->RametList;
-                r.erase(std::remove_if(r.begin(), r.end(), eraseExpiredRamet), r.end());
-            });
-
-    // Delete any empty genets
-    GenetList.erase(
-            std::remove_if(GenetList.begin(), GenetList.end(),
-                    [] (const shared_ptr<Genet> & g)
-                    {
-                        if (g->RametList.empty())
-                        {
-                            return true;
-                        }
-                        return false;
-                    }),
-                    GenetList.end());
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -827,22 +772,9 @@ void Grid::Winter()
 
 void Grid::SeedMortalityWinter()
 {
-    for (int i = 0; i < getGridArea(); ++i)
+    for (int i = 0; i < getGridArea(); ++i )
     {
-        Cell* cell = CellList[i];
-        for (std::vector<Seed>::iterator seed=cell->SeedBankList.begin(); seed != cell->SeedBankList.end(); ++seed)
-        {
-            if (rng.get01() < seedMortality)
-            {
-                seed->toBeRemoved = true;
-            }
-            else
-            {
-                ++seed->age;
-            }
-        }
-
-        cell->RemoveSeeds();
+        CellList[i]->SeedMortalityWinter(seedMortality);
     }
 }
 

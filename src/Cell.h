@@ -47,6 +47,8 @@ public:
     std::vector<Seed> Germinate();
 #endif
     void RemoveSeeds();
+    void SeedMortalityWinter(double aMortality);
+    void SeedMortalityAge();
 
     /* competition function for size symmetric above-ground resource competition
      * function is overwritten if inherited class with different competitive

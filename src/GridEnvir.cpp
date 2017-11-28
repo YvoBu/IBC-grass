@@ -203,7 +203,7 @@ bool GridEnvir::exitConditions()
 
 
 
-    std::cerr << "Plants: " << NPlants << " Clonal: " << NClPlants << " Seeds: " << NSeeds << " Free Cells: " << FreeCells << std::endl;
+//    std::cerr << "Plants: " << NPlants << " Clonal: " << NClPlants << " Seeds: " << NSeeds << " Free Cells: " << FreeCells << std::endl;
     // if no more individuals existing
     if ((NPlants + NClPlants + NSeeds) == 0) {
         return true; //extinction time

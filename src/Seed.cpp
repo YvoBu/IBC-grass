@@ -18,7 +18,7 @@ using namespace std;
  */
 Seed::Seed(const Traits & t, Cell* _cell, ITV_mode itv, double aSD) : Traits(t),
 		cell(NULL),
-		age(0), toBeRemoved(false)
+        age(0)
 {
     if (itv == on) {
         varyTraits(aSD);
@@ -37,7 +37,7 @@ Seed::Seed(const Traits & t, Cell* _cell, ITV_mode itv, double aSD) : Traits(t),
  */
 Seed::Seed(const Traits & t, Cell*_cell, double new_estab, ITV_mode itv, double aSD) : Traits(t),
 		cell(NULL),
-		age(0), toBeRemoved(false)
+        age(0)
 {
     if (itv == on) {
         varyTraits(aSD);

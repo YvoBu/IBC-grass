@@ -109,11 +109,31 @@ std::vector<Seed> Cell::Germinate()
 
 //-----------------------------------------------------------------------------
 
-void Cell::RemoveSeeds()
-{
-    SeedBankList.erase(
-            std::remove_if(SeedBankList.begin(), SeedBankList.end(), Seed::GetSeedRemove),
-            SeedBankList.end());
+void Cell::SeedMortalityWinter(double aMortality) {
+
+    for (std::vector<Seed>::iterator seed=SeedBankList.begin(); seed != SeedBankList.end();)
+    {
+        if (rng.get01() < aMortality)
+        {
+            seed = SeedBankList.erase(seed);
+        }
+        else
+        {
+            ++(seed->age);
+            ++seed;
+        }
+    }
+}
+
+void Cell::SeedMortalityAge() {
+    for (std::vector<Seed>::iterator seed= SeedBankList.begin(); seed != SeedBankList.end();)
+    {
+        if (seed->OldAge()) {
+            seed=SeedBankList.erase(seed);
+        } else {
+            ++seed;
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
