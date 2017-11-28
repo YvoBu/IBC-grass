@@ -119,7 +119,7 @@ void Cell::SeedMortalityWinter(double aMortality) {
         }
         else
         {
-            ++(seed->age);
+            ++seed->age;
             ++seed;
         }
     }
