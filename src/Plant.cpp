@@ -202,7 +202,7 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 
             Auptake-=res;
 
-            Buptake+= myc->HelpMe(res);
+            Buptake+= myc->HelpMe(this, res);
         } else {
         }
     } else {

@@ -51,13 +51,12 @@ void CMycorrhiza::Remove(Plant *aPlant) {
         }
         //
         //  If we got here we do not find the plant in the badpool
-        std::list<Plant*>::iterator mp;
+        std::map<Plant*, double>::iterator mp;
 
-        for (mp = GoodPool.begin(); mp != GoodPool.end(); ++mp) {
-            if ((*mp) == aPlant) {
-                GoodPool.erase(mp);
-                return;
-            }
+        mp = GoodPool.find(aPlant);
+        if (mp != GoodPool.end()) {
+            GoodPool.erase(mp);
+            return;
         }
         //
         //  If we got here the plant could not be found in the pools. Thats bad.
@@ -85,18 +84,26 @@ void CMycorrhiza::UpdatePool() {
             BadPool[index]->Attach(this);
             //
             //  Move the plant into the good pool.
-            GoodPool.push_back(BadPool[index]);
+            GoodPool.insert(std::pair<Plant*, double>(BadPool[index], 0.0));
             //
             //  remove the plant from the BadPool.
             BadPool.erase(BadPool.begin()+index);
         }
     } else {
-
     }
 }
 
-double CMycorrhiza::HelpMe(double aResource) {
+double CMycorrhiza::HelpMe(Plant* aPlant, double aResource) {
     double retval = 0.0;
+    std::map<Plant*, double>::iterator mp;
+
+    mp=GoodPool.find(aPlant);
+    if (mp != GoodPool.end()) {
+        mp->second=aResource;
+    } else {
+        std::cerr << "Something is wrong. Unknown plant ask for help.\n";
+    }
+
 
     return retval;
 }
