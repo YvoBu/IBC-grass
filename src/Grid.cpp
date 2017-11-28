@@ -323,9 +323,9 @@ void Grid::EstablishmentLottery()
      * than a reference to a shared_ptr, thus avoiding invalidation of the reference
      */
 
-    std::vector< shared_ptr<Plant>>::size_type original_size = PlantList.size();
+    size_t original_size = PlantList.size();
 
-    for (std::vector< shared_ptr<Plant> >::size_type i = 0; i < original_size; ++i)
+    for (size_t i = 0; i < original_size; ++i)
     {
         auto const& plant = PlantList[i];
 
@@ -417,11 +417,15 @@ void Grid::establishRamets(Plant* plant)
             spacer_itr++;
             continue;
         }
-
+        //
+        //  The spacer has been grown long enough here.
         Cell* cell = CellList[spacer->x * GridSize + spacer->y];
-
+        //
+        //  Check if it is a free cell.
         if (!cell->occupied)
         {
+            //
+            // lottery.
             if (rng.get01() < rametEstab)
             {
                 // This spacer successfully establishes into a ramet (CPlant) of a genet
@@ -430,20 +434,31 @@ void Grid::establishRamets(Plant* plant)
 
                 Genet->RametList.push_back(spacer);
                 spacer->setCell(cell);
+                //
+                //  It is now a plant.
                 PlantList.push_back(spacer);
                 //
                 //  Add the spacer into the mycorrhiza object.
                 myc.Add(spacer);
+            } else {
+                //
+                //  No need for the spacer anymore. Delete it.
+                delete *spacer_itr;
             }
-
-            // Regardless of establishment success, the iterator is removed from growingSpacerList
+            //
+            //  Space has done its purpose. Remove it from the spacer list.
             spacer_itr = plant->growingSpacerList.erase(spacer_itr);
+
         }
         else
         {
+            //
+            //  This spacer has not reached a cell at the end of the year
+            //  So remove it.
             if (Environment::week == Environment::WeeksPerYear)
             {
                 // It is winter so this spacer dies over the winter
+                delete *spacer_itr;
                 spacer_itr = plant->growingSpacerList.erase(spacer_itr);
             }
             else
@@ -712,10 +727,10 @@ void Grid::RemovePlants()
 
     for (std::vector<Plant*>::iterator pli=PlantList.begin(); pli != PlantList.end(); ) {
         if ((*pli)->toBeRemoved) {
+            myc.Remove(*pli);
             (*pli)->getCell()->occupied = false;
             plantptr.insert(*pli);
             pli=PlantList.erase(pli);
-            myc.Remove(*pli);
         } else {
             ++pli;
         }
@@ -728,7 +743,6 @@ void Grid::RemovePlants()
         //
         //  And withing go along the Ramets hold there.
         std::shared_ptr<Genet> g = *gi;
-        std::set<Plant*>::iterator do_del;
 
         for (std::vector<Plant*>::iterator pli = g->RametList.begin(); pli != g->RametList.end(); ) {
             if ((*pli)->toBeRemoved) {

@@ -83,7 +83,14 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
 
 Plant::~Plant()
 {
-	growingSpacerList.clear();
+    //
+    //  Because the growing spacers are not part of the plantlist we need to
+    //  delete the spacers if the plant gets deleted.
+    std::vector<Plant*>::iterator pi;
+
+    for (pi = growingSpacerList.begin(); pi != growingSpacerList.end(); ++pi) {
+        delete *pi;
+    }
 }
 
 void Plant::weeklyReset()

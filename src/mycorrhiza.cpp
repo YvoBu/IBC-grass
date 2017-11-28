@@ -23,7 +23,7 @@ void CMycorrhiza::Add(Plant *aPlant) {
         //  The new plant gets put into the badpool.
         BadPool.push_back(aPlant);
     } else {
-        //std::cerr << "Something wrong. Try to add a plant to the mycorrhiza that is already there\n";
+        std::cerr << "Something wrong. Try to add a plant to the mycorrhiza that is already there\n";
     }
 }
 
@@ -36,7 +36,7 @@ void CMycorrhiza::Remove(Plant *aPlant) {
     if (ptr != PtrPool.end()) {
         //
         //  Remove it from the ptr-pool
-        PtrPool.erase(ptr);
+        PtrPool.erase(aPlant);
         //
         //  Check the badpool.
         std::vector<Plant*>::iterator vp;
