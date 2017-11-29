@@ -46,7 +46,7 @@ public:
 #if 0
     std::vector<Seed> Germinate();
 #endif
-    void RemoveSeeds();
+
     void SeedMortalityWinter(double aMortality);
     void SeedMortalityAge();
 
