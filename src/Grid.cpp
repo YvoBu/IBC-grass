@@ -361,8 +361,9 @@ void Grid::EstablishmentLottery()
         {
             continue;
         }
+        double r = rng.get01();
+        double n = r * sumSeedMass;
 
-        double n = rng.get01() * sumSeedMass;
         for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
         {
             n -= itr->mass;
