@@ -121,7 +121,7 @@ void GridEnvir::OneWeek()
 
     if (year > 1)
     {
-        Disturb();  		// Grazing and disturbances
+//        Disturb();  		// Grazing and disturbances
     }
 
     if (mode == catastrophicDisturbance 						// Catastrophic disturbance is on
