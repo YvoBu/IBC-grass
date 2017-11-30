@@ -69,6 +69,8 @@ void Environment::GetSim(string data)
         >> trait_out						// Output: Trait-level output
         >> aggregated_out				// Output: Meta-level output
         >> NamePftFile 							// Input: Name of input community (PFT intialization) file
+        >> mycfbmin
+        >> mycfbmax
 		;
 
 	// set intraspecific competition version, intraspecific trait variation version, and competition modes

@@ -104,6 +104,9 @@ public:
 	int SeedRainType; // mode of seed input: 0 - no seed rain, 1 - some number of seeds
 
 	// Constructor
+    double mycfbmin;
+    double mycfbmax;
+
 	Parameters();
 
 };
