@@ -101,9 +101,19 @@ Traits::Traits(std::string line) :
         } else {
             mycC = mycCin/100.0;
         }
+    } else {
+        if (mycStat == "OM") {
+            mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+        } else if (mycStat == "FM") {
+            mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+        } else if (mycStat == "NM") {
+            mycC = 0;
+        }
     }
     // optimization for maxMass calculation
     maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
+    growth_RAR_Gmax = growth*RAR*Gmax;
+    growth_SLA_Gmax = growth*SLA*Gmax;
 }
 
 /**

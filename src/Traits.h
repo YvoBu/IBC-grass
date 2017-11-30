@@ -75,7 +75,8 @@ public:
     double      mycZOI;
     double      mycCOMP;
     double      mycC;
-
+    double      growth_RAR_Gmax;
+    double      growth_SLA_Gmax;
 //functions..
     Traits();
     Traits(const std::string line);

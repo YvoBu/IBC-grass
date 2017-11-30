@@ -31,6 +31,9 @@ int    proctoexec =  1;
 
 std::string NameSimFile = DEFAULT_SIMFILE; 	  // file with simulation scenarios
 std::string outputPrefix = DEFAULT_OUTPREFIX;
+//
+//  flag for switch off mycorrhiza simulation.
+bool myc_off = false;
 
 string configfilename;
 //
@@ -53,7 +56,8 @@ static void dump_help() {
             "\t\t-c        : use this file with configuration data\n"
             "\t\t-n        : line to execute in simulation\n"
             "\t\t-p        : number of processors to use\n"
-            "\t\t-s        : set a starting seed for random number generators\n";
+            "\t\t-s        : set a starting seed for random number generators\n"
+            "\t\t--myc-off : switch mycorrhiza feedback off\n";
     exit(0);
 
 }
@@ -69,8 +73,10 @@ static void process_long_parameter(string aLongParameter) {
     //  Afterwards the processing of a single parameter can be found be a chain
     //  of if () else if() else if() .... statements.
     //  The name of the parameter decides whether the value is needed or not.
-    if (name == "help") {
+    if (name == "help") {        
         dump_help();
+    } else if (name == "myc-off"){
+        myc_off = true;
     } else {
         std::cerr << "unknown parameter : " << name << "\n";
     }

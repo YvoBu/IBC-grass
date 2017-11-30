@@ -88,9 +88,9 @@ public:
 	}
 
     inline double Area_shoot()		{ return SLA * pow(LMR * mShoot, 2.0 / 3.0); } // ZOI area
-    inline double Area_root()   	{ return RAR * pow(mRoot, 2.0 / 3.0) * ((myc != 0)?mycZOI:1.0); }
+    double Area_root();
     inline double Radius_shoot() 	{ return sqrt(SLA * pow(LMR * mShoot, 2.0 / 3.0) / Pi); } // ZOI radius
-    inline double Radius_root() 	{ return sqrt(RAR * pow(mRoot, 2.0 / 3.0) / Pi); }
+    double Radius_root();
 
 	void setCell(Cell* cell);
     inline Cell* getCell() const { return cell; }
@@ -122,7 +122,9 @@ public:
 	}
 
 public:
-    void Attach(CMycorrhiza* aMyc) {myc = aMyc;};
+    //
+    //  If the plant is non-mycorrhizal or has no mycStat set it refuses to connect the myc.
+    bool Attach(CMycorrhiza* aMyc) {if ((mycStat.empty()) || (mycStat=="NM")) {return false;} else {myc = aMyc;return true;}};
     void Detach(void) {myc = 0;};
 
 };

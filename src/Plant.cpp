@@ -17,7 +17,7 @@
 using namespace std;
 
 extern RandomGenerator rng;
-
+extern bool myc_off;
 //-----------------------------------------------------------------------------
 /**
  * constructor - germination
@@ -192,20 +192,38 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 	/********************************************/
 	/*  dm/dt = growth*(c*m^p - m^q / m_max^r)  */
 	/********************************************/
-    //
-    //  We have mycorrhiza support.
-    if (myc != 0) {
+    if (!myc_off) {
         //
-        //  Buptake is limiting. Ask for help.
-        if (Buptake < Auptake) {
-            double res = Auptake * mycC;
-
-            Auptake-=res;
-
-            Buptake+= myc->HelpMe(this, res);
+        //  We have mycorrhiza support.
+        if (myc != 0) {
+            //
+            //  Buptake is limiting. Ask for help.
+            if (Buptake < Auptake) {
+                //
+                //  Calculating amount of resource to take from a-uptake
+                double resoffer = Auptake * mycC;
+                //
+                //  Reduce a-uptake
+                Auptake-=resoffer;
+                //
+                //  ask for help.
+                double reshelp = myc->HelpMe(this, resoffer);
+                //
+                //  Anyway we take the help from the mycorrhiza
+                Buptake+= reshelp;
+                //
+                //  But if we are an FM class plant we check the benefit
+                if ((mycStat == "FM") && (reshelp < resoffer)) {
+                    //
+                    // The mycorrhiza is not doing enough for us.
+                    // Dismiss!
+                    myc->Detach(this);
+                    myc = 0;
+                }
+            } else {
+            }
         } else {
         }
-    } else {
     }
     // which resource is limiting growth?
     LimRes = min(Buptake, Auptake); // two layers
@@ -252,7 +270,7 @@ double Plant::ShootGrow(double shres)
 	double q = 2.0;
 
     Assim_shoot = growth * min(shres, Gmax * Ash_disc);                                 //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_shoot = growth * SLA * pow(LMR, p) * Gmax * pow(mShoot, q) / maxMassPow_4_3rd; //respiration proportional to mshoot^2
+    Resp_shoot = growth_SLA_Gmax * pow(LMR, p) * pow(mShoot, q) / maxMassPow_4_3rd; //respiration proportional to mshoot^2
 
 	return max(0.0, Assim_shoot - Resp_shoot);
 
@@ -270,7 +288,7 @@ double Plant::RootGrow(double rres)
 	double q = 2.0;
 
     Assim_root = growth * min(rres, Gmax * Art_disc); //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_root = growth * Gmax * RAR * pow(mRoot, q) / maxMassPow_4_3rd;  //respiration proportional to root^2
+    Resp_root = growth_RAR_Gmax * pow(mRoot, q) / maxMassPow_4_3rd;  //respiration proportional to root^2
 
 	return max(0.0, Assim_root - Resp_root);
 }
@@ -421,10 +439,16 @@ double Plant::comp_coef(const int layer, const int symmetry) const
             return Gmax;
 		break;
 	case 2:
-		if (layer == 1)
+        if (layer == 1) {
             return mShoot * CompPowerA();
-		if (layer == 2)
-            return mRoot * CompPowerB() * ((myc != 0)?mycCOMP:1.0);
+        }
+        if (layer == 2) {
+            if (myc_off) {
+                return mRoot * CompPowerB();
+            } else {
+                return mRoot * CompPowerB() * ((myc != 0)?mycCOMP:1.0);
+            }
+        }
 		break;
 	default:
 		cerr << "CPlant::comp_coef() - wrong input";
@@ -432,4 +456,19 @@ double Plant::comp_coef(const int layer, const int symmetry) const
 	}
 
 	return -1;
+}
+
+double Plant::Area_root() {
+    if (!myc_off) {
+      return RAR * pow(mRoot, 2.0 / 3.0) * ((myc != 0)?mycZOI:1.0);
+  } else {
+      return RAR * pow(mRoot, 2.0 / 3.0);
+  }
+}
+double Plant::Radius_root() {
+    if (!myc_off) {
+        return sqrt(RAR * ((myc != 0)?mycZOI:1.0) * pow(mRoot, 2.0 / 3.0) / Pi);
+    } else {
+        return sqrt(RAR * pow(mRoot, 2.0 / 3.0) / Pi);
+    }
 }
