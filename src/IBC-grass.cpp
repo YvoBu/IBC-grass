@@ -214,7 +214,10 @@ int main(int argc, char* argv[])
                 //  Each simulation done as often as requested by the NRep value.
                 while (getline(SimFile, data).good())
                 {
-                    if ((linetoexec == -1) || (linecounter == linetoexec)) {
+                    //
+                    //  Here we check whether the requested line matches and if this line starts with
+                    //  the comment character. Lines starting with '#' are comments are not executed.
+                    if (((linetoexec == -1) || (linecounter == linetoexec)) && (data[0] !='#')) {
                         for (int i = 0; i < _NRep; i++)
                         {
                             //
@@ -233,6 +236,10 @@ int main(int argc, char* argv[])
                             pthread_mutex_unlock(&waitmutex);
                         }
                     }
+                    //
+                    //  We do count comment-lines as well.
+                    //  If in need to start a specific line, take your favorite
+                    //  editor and let it show the line.
                     linecounter++;
                 }
                 //
