@@ -353,8 +353,6 @@ void CellAsymPartSymV2::AboveComp() {
     for (std::vector<Plant*>::iterator pi = AbovePlantList.begin(); pi != AbovePlantList.end(); ++pi)
     {
         comp_c = (*pi)->comp_coef(1, 2) * prop_res_above((*pi)->pft());
-        //
-        //  Remove mycC procent from the original Auptake.
         (*pi)->Auptake += (AResConc * comp_c / comp_tot);
     }
 
