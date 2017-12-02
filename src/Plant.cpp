@@ -203,7 +203,9 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                 //  Calculating amount of resource to take from a-uptake
                 double resoffer = Auptake * mycC;
                 //
-                //  Reduce a-uptake
+                //  Reduce a-uptake. resoffer can not be larger than Auptake.
+                //  Therefor Auptake cannot be reduced below zero.
+                //  No checks needed.
                 Auptake-=resoffer;
                 //
                 //  ask for help.
@@ -211,6 +213,13 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                 //
                 //  Anyway we take the help from the mycorrhiza
                 Buptake+= reshelp;
+                //
+                //  If we simulate strange parasitic behaviour reshelp may
+                //  become negative and thus may reduce the Buptage below zero.
+                //  This makes no sense and gets stopped here.
+                if (Buptake < 0.0) {
+                    Buptake = 0.0;
+                }
                 //
                 //  But if we are an FM class plant we check the benefit
                 if ((mycStat == "FM") && (reshelp < resoffer)) {
