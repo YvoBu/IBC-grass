@@ -158,11 +158,8 @@ void Environment::GetSim(string data)
     if (ind_out) {
         ind = 	dir + fid + "_ind.csv";
     }
-    if (aggregated_out) {
-        aggregated =   dir + fid + "_aggregated.csv";
-    }
 
-    output.setupOutput(param, trait, srv, PFT, ind, aggregated);
+    output.setupOutput(param, trait, srv, PFT, ind);
 
 
     ReadPFTDef(NamePftFile);

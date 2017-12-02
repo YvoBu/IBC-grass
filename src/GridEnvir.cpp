@@ -14,6 +14,7 @@
 #include "IBC-grass.h"
 using namespace std;
 pthread_mutex_t GridEnvir::gammalock;
+pthread_mutex_t GridEnvir::aggregated_lock;
 
 //------------------------------------------------------------------------------
 
@@ -163,7 +164,9 @@ void GridEnvir::OneWeek()
         output.TotalBelowComp.push_back(GetTotalBelowComp());
 
         print_srv_and_PFT(PlantList);
-
+        //
+        //  Check if we should output aggregated data.
+        //  No further check is done beyond this point.
         if (aggregated_out == 1)
         {
             print_aggregated(PlantList);
@@ -480,8 +483,52 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     ss << meanTraits["Gmax"] 														<< ", ";
     ss << meanTraits["SLA"] 													           ;
 
-    output.print_row(ss, output.aggregated_stream);
+    //
+    //  Create the filename from the SimID only.
+    //  Collecting all runs of an experiment in a single file.
+    //  But use one file per experiment.
+    std::ostringstream  filename;
 
+    filename << "data/out/" << outputPrefix << "_" << SimID << "_aggregated.csv";
+    //
+    //  Lockout other threads from accessing the file.
+    pthread_mutex_lock(&GridEnvir::aggregated_lock);
+    //
+    //  Open file for append.
+    std::ofstream aggregatedfile(filename.str(), std::ios_base::app);
+    //
+    //  Check if file could be opened.
+    if (aggregatedfile.good()) {
+        //
+        //  Check if file is empty.
+        if (aggregatedfile.tellp()==0) {
+            std::vector<std::string>::const_iterator hi;
+            //
+            //  The header for the aggregated file is already defined in the Output-Class.
+            for(hi = Output::aggregated_header.begin(); hi != Output::aggregated_header.end(); ++hi) {
+                //
+                //  The first header-item has no comma prepended.
+                if (hi != Output::aggregated_header.begin()) {
+                    aggregatedfile << ",";
+                }
+                //
+                //  Output the header-item
+                aggregatedfile << *hi;
+            }
+            aggregatedfile << std::endl;
+        }
+        //
+        //  Output the real data.
+        aggregatedfile << ss.str();
+        //
+        // Write the counts for the pfts.
+        aggregatedfile << std::endl;
+    } else {
+        std::cerr << "Could not open aggregatedfile " << filename.str() << std::endl;
+    }
+    //
+    // Allow access from other runs.
+    pthread_mutex_unlock(&GridEnvir::aggregated_lock);
 }
 
 void GridEnvir::OutputGamma() {

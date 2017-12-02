@@ -197,6 +197,7 @@ int main(int argc, char* argv[])
         //
         // initialize the lock in the simulation class
         pthread_mutex_init(&GridEnvir::gammalock, 0);
+        pthread_mutex_init(&GridEnvir::aggregated_lock, 0);
         //
         //  Make it crazy save.
         if (getline(SimFile, data).good()) {

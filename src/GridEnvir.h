@@ -31,6 +31,7 @@ private:
     void OutputGamma();
 public:
     static pthread_mutex_t gammalock;
+    static pthread_mutex_t aggregated_lock;
 };
 
 #endif /* CGRIDENVIR_H_ */

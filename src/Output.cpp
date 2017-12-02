@@ -77,8 +77,7 @@ Output::Output() :
         trait_fn("data/out/trait.txt"),
         srv_fn("data/out/srv.txt"),
         PFT_fn("data/out/PFT.txt"),
-        ind_fn("data/out/ind.txt"),
-        aggregated_fn("data/out/aggregated.txt")
+        ind_fn("data/out/ind.txt")
 {
     BlwgrdGrazingPressure = { 0 };
     ContemporaneousRootmassHistory = { 0 };
@@ -98,7 +97,7 @@ Output::~Output()
 }
 
 void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
-                         string _PFT_fn, string _ind_fn, string _agg_fn)
+                         string _PFT_fn, string _ind_fn)
 {
 
     pthread_mutex_lock(&openlock);
@@ -108,7 +107,6 @@ void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
     srv_fn = _srv_fn;
     PFT_fn = _PFT_fn;
     ind_fn = _ind_fn;
-    aggregated_fn = _agg_fn;
 
     bool mid_batch = is_file_exist(param_fn.c_str());
 
@@ -144,13 +142,6 @@ void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
         assert(srv_stream.good());
         if (!mid_batch) print_row(srv_header, srv_stream);
     }
-
-    if ((!aggregated_fn.empty())  && (!aggregated_stream.is_open()))
-    {
-        aggregated_stream.open(aggregated_fn.c_str(), ios_base::app);
-        assert(aggregated_stream.good());
-        if (!mid_batch) print_row(aggregated_header, aggregated_stream);
-    }
     pthread_mutex_unlock(&openlock);
 }
 
@@ -185,11 +176,6 @@ void Output::cleanup()
     if (Output::ind_stream.is_open()) {
         Output::ind_stream.close();
         Output::ind_stream.clear();
-    }
-
-    if (Output::aggregated_stream.is_open()) {
-        Output::aggregated_stream.close();
-        Output::aggregated_stream.clear();
     }
 }
 

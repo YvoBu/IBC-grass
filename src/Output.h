@@ -28,7 +28,7 @@ struct PFT_struct
 class Output
 {
 
-private:
+public:
     // Describes simulation parameters. These are static throughout and provided at initialization.
     static const std::vector<std::string> param_header;
 
@@ -53,7 +53,6 @@ private:
     std::string srv_fn;
     std::string PFT_fn;
     std::string ind_fn;
-    std::string aggregated_fn;
 
     bool is_file_exist(const char *fileName);
 
@@ -62,7 +61,7 @@ public:
     Output();
     ~Output();
 
-    void setupOutput(std::string param_fn, std::string trait_fn, std::string srv_fn, std::string PFT_fn, std::string ind_fn, std::string agg_fn);
+    void setupOutput(std::string param_fn, std::string trait_fn, std::string srv_fn, std::string PFT_fn, std::string ind_fn);
     void cleanup();
 
 //    void print_param(); // prints general parameterization data
