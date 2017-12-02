@@ -17,9 +17,13 @@ SRC=Cell.cpp\
     mycorrhiza.cpp
 
 OBJ=$(SRC:.cpp=.o)
-
+ifdef DEBUG
 CXXFLAGS+=-O0 -g -Wall -std=c++14
 LDFLAGS=-lpthread -g
+else
+CXXFLAGS+=-O3 -Wall -std=c++14
+LDFLAGS=-lpthread
+endif
 
 all : ibcgrass
 
