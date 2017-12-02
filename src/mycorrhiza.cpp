@@ -102,9 +102,10 @@ void CMycorrhiza::UpdatePool() {
             bool attached = BadPool[index]->Attach(this);
 
             if (attached) {
+                PlantInfo pli{0.0, (rng.get01()*FbRange)+FbOffset};
                 //
                 //  Move the plant into the good pool.
-                GoodPool.insert(std::pair<Plant*, PlantInfo>(BadPool[index], PlantInfo {0.0, rng.get01()*2.0}));
+                GoodPool.insert(std::pair<Plant*, PlantInfo>(BadPool[index], pli));
                 //
                 //  remove the plant from the BadPool.
                 BadPool.erase(BadPool.begin()+index);
