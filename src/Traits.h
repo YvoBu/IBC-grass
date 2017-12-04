@@ -75,15 +75,14 @@ public:
     double      mycZOI;
     double      mycCOMP;
     double      mycC;
+    double      mycFbrate;
     double      growth_RAR_Gmax;
     double      growth_SLA_Gmax;
 //functions..
     Traits();
-    Traits(const std::string line);
+    Traits(const std::string line, double aFBRate);
 
     void varyTraits(double);
-    std::unique_ptr<Traits> copyTraitSet(const std::unique_ptr<Traits> & t);
-
 };
 
 #endif /* SPFTTRAITS_H_ */

@@ -29,6 +29,9 @@ public:
     int ComNr;	// Community identifier for multiple parameter settings of the same community.
     int RunNr;   // repetition number
 
+    double mycFbRange;
+    double mycFbOffset;
+
 	Environment();
 	~Environment();
 

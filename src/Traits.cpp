@@ -29,7 +29,7 @@ Traits::Traits() :
 
 }
 
-Traits::Traits(std::string line) :
+Traits::Traits(std::string line, double aFbRate) :
     myTraitType(Traits::species), PFT_ID("EMPTY"),
     LMR(-1), SLA(-1), RAR(1), m0(-1), maxMass(-1),
     allocSeed(0.05), seedMass(-1), dispersalDist(-1), dormancy(1), pEstab(0.5),
@@ -112,18 +112,12 @@ Traits::Traits(std::string line) :
     }
     // optimization for maxMass calculation
     maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
-    growth_RAR_Gmax = growth*RAR*Gmax;
-    growth_SLA_Gmax = growth*SLA*Gmax;
+    growth_RAR_Gmax  = growth*RAR*Gmax;
+    growth_SLA_Gmax  = growth*SLA*Gmax;
+    //
+    //  Set the feedback rate for this PFT.
+    mycFbrate        = aFbRate;
 }
-
-/**
- * Retrieve a deep-copy some arbitrary trait set (for plants dropping seeds)
- */
-unique_ptr<Traits> Traits::copyTraitSet(const unique_ptr<Traits> & t)
-{
-    return (make_unique<Traits>(*t));
-}
-
 //-----------------------------------------------------------------------------
 /**
  * Read definition of PFTs used in the simulation

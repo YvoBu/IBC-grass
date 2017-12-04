@@ -23,7 +23,6 @@ CSimulation::CSimulation(int i, std::string aConfig)
 
 bool CSimulation::InitInstance() {
     GetSim(Configuration);
-    myc.SetFeedbackRange(mycfbmin, mycfbmax);
     std::cout << getSimID() << std::endl;
     std::cout << "Run " << RunNr << " \n";
 

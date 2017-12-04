@@ -14,6 +14,8 @@
 using namespace std;
 
 const int Environment::WeeksPerYear = 30;
+extern RandomGenerator rng;
+
 //-----------------------------------------------------------------------------
 
 Environment::Environment()
@@ -72,6 +74,10 @@ void Environment::GetSim(string data)
         >> mycfbmin
         >> mycfbmax
 		;
+    //
+    //  Calculate range and offset from min and max value.
+    mycFbRange  = mycfbmax-mycfbmin;
+    mycFbOffset = mycfbmin;
 
 	// set intraspecific competition version, intraspecific trait variation version, and competition modes
 	switch (IC_version)
@@ -186,7 +192,13 @@ void Environment::ReadPFTDef(const string& file)
     getline(InitFile, line); // skip header line
     while (getline(InitFile, line))
     {
-        Traits trait(line);
+        //
+        //  Not only parse the line and setup the values from the line
+        //  but also setup the feedback for this PFT. This way all plants
+        //  of a PFT have the same feedback.
+        Traits trait(line, (rng.get01()*mycFbRange)+mycFbOffset);
+        //
+        //  Store the new 'trait' as template for plants.
         pftTraitTemplates.insert(std::pair<std::string, Traits>(trait.PFT_ID, trait));
         pftInsertionOrder.push_back(trait.PFT_ID);
     }

@@ -102,7 +102,9 @@ void CMycorrhiza::UpdatePool() {
             bool attached = BadPool[index]->Attach(this);
 
             if (attached) {
-                PlantInfo pli{0.0, (rng.get01()*FbRange)+FbOffset};
+                //
+                //  Take the feedback rate that is defined for specific PFT within a plant.
+                PlantInfo pli{0.0, BadPool[index]->mycFbrate};
                 //
                 //  Move the plant into the good pool.
                 GoodPool.insert(std::pair<Plant*, PlantInfo>(BadPool[index], pli));
@@ -154,7 +156,9 @@ void CMycorrhiza::UpdatePool() {
                     bool attached = BadPool[index]->Attach(this);
 
                     if (attached) {
-                        PlantInfo pli{0.0, (rng.get01()*FbRange)+FbOffset};
+                        //
+                        //  Take the feedback rate that is defined for specific PFT within a plant.
+                        PlantInfo pli{0.0, BadPool[index]->mycFbrate};
                         //
                         //  Move the plant into the good pool.
                         GoodPool.insert(std::pair<Plant*, PlantInfo>(BadPool[index], pli));
