@@ -105,6 +105,17 @@ void GridEnvir::OneYear()
         if (exitConditions()) break;
 
     } while (++week <= WeeksPerYear);
+    if (year == 1) {
+        //
+        //  Clear the seedbank in the first year because they are
+        //  all have estab=1.0 set.
+        Cell* cell;
+        for (int i=0; i < getGridArea(); ++i) {
+            cell = CellList[i];
+
+            cell->SeedBankList.clear();
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------

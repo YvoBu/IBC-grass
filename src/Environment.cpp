@@ -15,6 +15,7 @@ using namespace std;
 
 const int Environment::WeeksPerYear = 30;
 extern RandomGenerator rng;
+extern long PFTCount;
 
 //-----------------------------------------------------------------------------
 
@@ -186,7 +187,15 @@ std::string Environment::getSimID()
 void Environment::ReadPFTDef(const string& file)
 {
     //Open InitFile
-    ifstream InitFile(file.c_str());
+    std::ifstream InitFile(file.c_str());
+    //
+    //  We have three different mycStats and maybe no mycstat at all.
+    //  So we define 4 vectors to put the PFTs into it.
+    std::vector<Traits> OM;
+    std::vector<Traits> FM;
+    std::vector<Traits> NM;
+    std::vector<Traits> noneM;
+
 
     string line;
     getline(InitFile, line); // skip header line
@@ -198,9 +207,99 @@ void Environment::ReadPFTDef(const string& file)
         //  of a PFT have the same feedback.
         Traits trait(line, (rng.get01()*mycFbRange)+mycFbOffset);
         //
-        //  Store the new 'trait' as template for plants.
-        pftTraitTemplates.insert(std::pair<std::string, Traits>(trait.PFT_ID, trait));
-        pftInsertionOrder.push_back(trait.PFT_ID);
+        //  Depending on the mycStat of the new PFT we put the PFT
+        //  into the specific vector.
+        if (trait.mycStat == "OM") {
+            OM.push_back(trait);
+        } else if (trait.mycStat == "FM") {
+            FM.push_back(trait);
+        } else if (trait.mycStat == "NM") {
+            NM.push_back(trait);
+        } else {
+            noneM.push_back(trait);
+        }
+    }
+    if (PFTCount != -1) {
+        //
+        // We sum the sizes of our PFT vectors for later use
+        double count   = OM.size()+FM.size()+NM.size()+noneM.size();
+
+        double factor  = PFTCount/count;
+        //
+        //  Run it on OMs
+        int take = OM.size()*factor+0.5;
+
+        if ((OM.size()>0) && (take == 0)) {
+            take=1;
+        }
+        for (int i=0; i<take; ++i) {
+            int index = OM.size()*rng.get01();
+
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(OM[index].PFT_ID, OM[index]));
+            pftInsertionOrder.push_back(OM[index].PFT_ID);
+            OM.erase(OM.begin()+index);
+        }
+        //
+        //  Run it on NMs
+        take = NM.size()*factor+0.5;
+
+        if ((NM.size()>0) && (take == 0)) {
+            take=1;
+        }
+        for (int i=0; i<take; ++i) {
+            int index = NM.size()*rng.get01();
+
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(NM[index].PFT_ID, NM[index]));
+            pftInsertionOrder.push_back(NM[index].PFT_ID);
+            NM.erase(NM.begin()+index);
+        }
+        //
+        //  Run it on FMs
+        take = FM.size()*factor+0.5;
+
+        if ((FM.size()>0) && (take == 0)) {
+            take=1;
+        }
+        for (int i=0; i<take; ++i) {
+            int index = FM.size()*rng.get01();
+
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(FM[index].PFT_ID, FM[index]));
+            pftInsertionOrder.push_back(FM[index].PFT_ID);
+            FM.erase(FM.begin()+index);
+        }
+        //
+        //  Run it on noneMs
+        take = noneM.size()*factor+0.5;
+
+        if ((noneM.size()>0) && (take == 0)) {
+            take=1;
+        }
+        for (int i=0; i<take; ++i) {
+            int index = noneM.size()*rng.get01();
+
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(noneM[index].PFT_ID, noneM[index]));
+            pftInsertionOrder.push_back(noneM[index].PFT_ID);
+            noneM.erase(noneM.begin()+index);
+        }
+    } else {
+        //
+        //  Transfer the PFTs into the template map.
+        for (std::vector<Traits>::iterator i=OM.begin(); i != OM.end(); ++i) {
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(i->PFT_ID, *i));
+            pftInsertionOrder.push_back(i->PFT_ID);
+        }
+        for (std::vector<Traits>::iterator i=NM.begin(); i != NM.end(); ++i) {
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(i->PFT_ID, *i));
+            pftInsertionOrder.push_back(i->PFT_ID);
+        }
+        for (std::vector<Traits>::iterator i=FM.begin(); i != FM.end(); ++i) {
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(i->PFT_ID, *i));
+            pftInsertionOrder.push_back(i->PFT_ID);
+        }
+        for (std::vector<Traits>::iterator i=noneM.begin(); i != noneM.end(); ++i) {
+            pftTraitTemplates.insert(std::pair<std::string, Traits>(i->PFT_ID, *i));
+            pftInsertionOrder.push_back(i->PFT_ID);
+        }
     }
 }
 

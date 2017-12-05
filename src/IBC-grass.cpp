@@ -34,7 +34,11 @@ std::string outputPrefix = DEFAULT_OUTPREFIX;
 //
 //  flag for switch off mycorrhiza simulation.
 bool myc_off = false;
-
+//
+//  Number of PFTs in the pool of pfts.
+long PFTCount = -1;
+//
+//  Name of a configuration file.
 string configfilename;
 //
 //  The Randomnumber generation is something that all threads need
@@ -52,12 +56,13 @@ pthread_cond_t  wait;
 static void dump_help() {
     cerr << "usage:\n"
             "\tibc <options> <simfilename> <outputprefix>\n"
-            "\t\t-h/--help : print this usage information\n"
-            "\t\t-c        : use this file with configuration data\n"
-            "\t\t-n        : line to execute in simulation\n"
-            "\t\t-p        : number of processors to use\n"
-            "\t\t-s        : set a starting seed for random number generators\n"
-            "\t\t--myc-off : switch mycorrhiza feedback off\n";
+            "\t\t-h/--help   : print this usage information\n"
+            "\t\t-c          : use this file with configuration data\n"
+            "\t\t-n          : line to execute in simulation\n"
+            "\t\t-p          : number of processors to use\n"
+            "\t\t-s          : set a starting seed for random number generators\n"
+            "\t\t--myc-off   : switch mycorrhiza feedback off\n"
+            "\t\t--pft-count : number of PFTs in pool\n";
     exit(0);
 
 }
@@ -77,6 +82,8 @@ static void process_long_parameter(string aLongParameter) {
         dump_help();
     } else if (name == "myc-off"){
         myc_off = true;
+    } else if (name == "pft-count") {
+        PFTCount = strtol(value.c_str(), 0, 0);
     } else {
         std::cerr << "unknown parameter : " << name << "\n";
     }
