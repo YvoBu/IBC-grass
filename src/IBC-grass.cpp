@@ -20,7 +20,12 @@ using namespace std;
 //
 //  This is the size of one side of a square area.
 //  The whole simulation area is 173*173 cells.
+//  It may be overridden from the command line.
 long   GridSize = 173;   //  Side length in cm
+//
+//  This is the number if seeds to be put into the grid per PFT.
+//  It can be overridden for all runs from the command line.
+long no_init_seeds = 10;
 
 int    startseed  = -1;
 int    linetoexec = -1;
@@ -62,7 +67,10 @@ static void dump_help() {
             "\t\t-p          : number of processors to use\n"
             "\t\t-s          : set a starting seed for random number generators\n"
             "\t\t--myc-off   : switch mycorrhiza feedback off\n"
-            "\t\t--pft-count : number of PFTs in pool\n";
+            "\t\t--pft-count : number of PFTs in pool\n"
+            "\t\t--init-seed : number of seeds per PFT on init\n"
+            "\t\t--grid-size : size of the simulated area in cm\n";
+
     exit(0);
 
 }
@@ -84,6 +92,10 @@ static void process_long_parameter(string aLongParameter) {
         myc_off = true;
     } else if (name == "pft-count") {
         PFTCount = strtol(value.c_str(), 0, 0);
+    } else if (name == "init-seed") {
+        no_init_seeds = strtol(value.c_str(), 0, 0);
+    } else if (name == "grid-size") {
+        GridSize = strtol(value.c_str(), 0, 0);
     } else {
         std::cerr << "unknown parameter : " << name << "\n";
     }
@@ -187,7 +199,15 @@ int main(int argc, char* argv[])
          }
          i++;
      }
-    cerr << "Using simfile : " << NameSimFile << endl << "Using output prefix : " << outputPrefix << endl;
+    std::cerr << "Using simfile : " << NameSimFile << endl << "Using output prefix : " << outputPrefix << endl;
+    std::cerr << "Grid-Size is " << GridSize << "cm for all runs. Starting with ";
+    if (PFTCount == -1) {
+        std::cerr << "all";
+    } else {
+        std::cerr << PFTCount;
+    }
+    std::cerr << " PFTs from the pool of PFTs\n";
+    std::cerr << "Initial seeding uses " << no_init_seeds << " of each PFT used\n";
     //
     //  This is the end of a new program parameter parser.
     //
