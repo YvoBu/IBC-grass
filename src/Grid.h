@@ -42,6 +42,7 @@ protected:
     void Cutting(double CutHeight = 0);
     void CellsInit();					// Creates the cells that make up the grid
     void SetCellResources();			// Populates the grid with resources (weekly)
+    long GetMycStatCount(std::string aMycStat);  //  Returns the number of plants of a specific myc-stat
 
 public:
     Cell**               CellList;     // array of pointers to CCell

@@ -53,7 +53,7 @@ const vector<string> Output::aggregated_header
          "TotalAboveComp", "TotalBelowComp",
          "TotalShootmass", "TotalRootmass",
          "TotalNonClonalPlants", "TotalClonalPlants",
-         "wm_LMR", "wm_MaxMass", "wm_Gmax", "wm_SLA"
+         "wm_LMR", "wm_MaxMass", "wm_Gmax", "wm_SLA", "OMcount", "FMcount", "NMcount"
     });
 
 const vector<string> Output::ind_header

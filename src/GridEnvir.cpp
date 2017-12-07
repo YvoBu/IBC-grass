@@ -15,6 +15,10 @@
 using namespace std;
 pthread_mutex_t GridEnvir::gammalock;
 pthread_mutex_t GridEnvir::aggregated_lock;
+//
+//  This is the nu,ber if seeds to be put into the grid per PFT.
+//  It can be overridden for all runs from the command line.
+extern long no_init_seeds;
 
 //------------------------------------------------------------------------------
 
@@ -34,7 +38,6 @@ void GridEnvir::InitRun()
 
 void GridEnvir::InitInds()
 {
-    const int no_init_seeds = 10;
     const double estab = 1.0;
 
     if (mode == communityAssembly || mode == catastrophicDisturbance)
@@ -492,7 +495,10 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     ss << meanTraits["LMR"] 														<< ", ";
     ss << meanTraits["MaxMass"] 													<< ", ";
     ss << meanTraits["Gmax"] 														<< ", ";
-    ss << meanTraits["SLA"] 													           ;
+    ss << meanTraits["SLA"] 													    << ", ";
+    ss << GetMycStatCount("OM")													    << ", ";
+    ss << GetMycStatCount("FM")  												    << ", ";
+    ss << GetMycStatCount("NM") 													    ;
 
     //
     //  Create the filename from the SimID only.

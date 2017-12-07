@@ -976,3 +976,14 @@ int Grid::GetNSeeds()
     return seedCount;
 }
 
+long Grid::GetMycStatCount(string aMycStat) {
+    long retval = 0;
+
+    for (std::vector<Plant*>::iterator i= PlantList.begin(); i != PlantList.end(); ++i) {
+        if ((!(*i)->isDead) && ((*i)->mycStat == aMycStat)) {
+            retval++;
+        }
+    }
+
+    return retval;
+}
