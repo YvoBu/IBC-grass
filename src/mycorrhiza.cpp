@@ -182,7 +182,7 @@ void CMycorrhiza::UpdatePool() {
     MaxOffer = 0.0;
 }
 
-double CMycorrhiza::HelpMe(Plant* aPlant, double aResource) {
+double CMycorrhiza::HelpMe(Plant* aPlant, double aResource, double aDemand) {
     double retval = 0.0;
     std::map<Plant*, PlantInfo>::iterator mp;
     //
@@ -200,7 +200,8 @@ double CMycorrhiza::HelpMe(Plant* aPlant, double aResource) {
         mp->second.HelpOffer=aResource;
         //
         //  Calculate the amount of resource that the mycorrhiza returns.
-        retval = (1 + mp->second.HelpFactor) * aResource;
+        retval = (1+mp->second.HelpFactor) * aDemand;
+//        std::cerr << "Help:" << retval << " aResource:" << aResource << std::endl;
     } else {
         std::cerr << "Something is wrong. Unknown plant ask for help.\n";
     }

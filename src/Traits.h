@@ -75,6 +75,7 @@ public:
     double      mycZOI;
     double      mycCOMP;
     double      mycC;
+    double      mycP;
     double      mycFbrate;
     double      growth_RAR_Gmax;
     double      growth_SLA_Gmax;

@@ -559,7 +559,7 @@ void GridEnvir::OutputGamma() {
     //  Create counters from all PFTs
     std::map< std::string, Traits >::iterator ti;
 
-    for (ti = pftTraitTemplates.begin(); ti != pftTraitTemplates.end(); ++ti) {
+    for (ti = pftAll.begin(); ti != pftAll.end(); ++ti) {
         pft[ti->first] = 0;
     }
     //
@@ -593,6 +593,7 @@ void GridEnvir::OutputGamma() {
             for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
                 gammafile << "," << pfti->first;
             }
+            gammafile << ",OMcount, FMcount, NMcount";
             gammafile << std::endl;
         }
         //
@@ -603,6 +604,28 @@ void GridEnvir::OutputGamma() {
         for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
             gammafile << "," << pfti->second;
         }
+
+        long omc = 0;
+        long fmc = 0;
+        long nmc = 0;
+        std::map<std::string, Traits>::iterator ti;
+
+        for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
+            if (pfti->second != 0) {
+                ti = pftTraitTemplates.find(pfti->first);
+                if (ti != pftTraitTemplates.end()) {
+                    if (ti->second.mycStat == "OM") {
+                        omc++;
+                    } else if (ti->second.mycStat == "FM") {
+                        fmc++;
+                    } else if (ti->second.mycStat == "NM") {
+                        nmc++;
+                    }
+                }
+            }
+        }
+        gammafile << "," << omc << "," << fmc << "," << nmc;
+
         gammafile << std::endl;
     } else {
         std::cerr << "Could not open gammafile " << oss.str() << std::endl;

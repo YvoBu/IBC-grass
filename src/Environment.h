@@ -46,6 +46,7 @@ public:
     std::string getSimID(); // Merge ID for data sets
     void ReadPFTDef(const std::string& file);
     std::map< std::string, Traits >      pftTraitTemplates; // links of PFTs (Traits) used
+    std::map<std::string, Traits>        pftAll;
     std::vector< std::string>            pftInsertionOrder;
 };
 

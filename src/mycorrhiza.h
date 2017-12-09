@@ -16,7 +16,7 @@ public:
     void Remove(Plant* aPlant);
     void Detach(Plant* aPlant);
     void UpdatePool(void);
-    double HelpMe(Plant* aPlant, double aResource);
+    double HelpMe(Plant* aPlant, double aResource, double aDemand);
 private:
     struct PlantInfo {
         double HelpOffer;

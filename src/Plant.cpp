@@ -208,8 +208,14 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                 //  No checks needed.
                 Auptake-=resoffer;
                 //
+                //  The demand is the resource amount that is needed to make the below-ground
+                //  uptake not the limiting factor.
+                //  So the difference between Auptake and Buptake after the resource offer to the
+                //  mycorrhiza has been removed from the Auptake, but not below zero.
+                double demand = max(0.0, (Auptake-Buptake));
+                //
                 //  ask for help.
-                double reshelp = myc->HelpMe(this, resoffer);
+                double reshelp = myc->HelpMe(this, resoffer, Buptake);
                 //
                 //  Anyway we take the help from the mycorrhiza
                 Buptake+= reshelp;

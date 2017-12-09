@@ -110,6 +110,14 @@ Traits::Traits(std::string line, double aFbRate) :
             mycC = 0;
         }
     }
+    if (mycStat == "OM") {
+        mycP = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.5; // generates random number between 0.5 and 0.9
+    } else if (mycStat == "FM") {
+        mycP = (rng.rng() / (((double) UINT32_MAX) / 0.3)) + 0.2; // generates random number between 0.2 and 0.5
+    } else if (mycStat == "NM") {
+        mycP = 0;
+    }
+    //std::cerr << "Stat: " << mycStat << "::" << mycP << std::endl;
     // optimization for maxMass calculation
     maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
     growth_RAR_Gmax  = growth*RAR*Gmax;

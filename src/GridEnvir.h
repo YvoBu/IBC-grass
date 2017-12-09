@@ -3,6 +3,7 @@
 #define SRC_GRIDENVIR_H_
 
 #include <string>
+#include <map>
 
 class GridEnvir: public Grid, public CThread
 {
@@ -32,6 +33,7 @@ private:
 public:
     static pthread_mutex_t gammalock;
     static pthread_mutex_t aggregated_lock;
+
 };
 
 #endif /* CGRIDENVIR_H_ */

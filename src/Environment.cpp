@@ -16,6 +16,7 @@ using namespace std;
 const int Environment::WeeksPerYear = 30;
 extern RandomGenerator rng;
 extern long PFTCount;
+extern bool pft_ratio_off;
 
 //-----------------------------------------------------------------------------
 
@@ -195,7 +196,7 @@ void Environment::ReadPFTDef(const string& file)
     std::vector<Traits> FM;
     std::vector<Traits> NM;
     std::vector<Traits> noneM;
-
+    std::vector<Traits> all;
 
     string line;
     getline(InitFile, line); // skip header line
@@ -207,6 +208,9 @@ void Environment::ReadPFTDef(const string& file)
         //  of a PFT have the same feedback.
         Traits trait(line, (rng.get01()*mycFbRange)+mycFbOffset);
         //
+        //  We store all read-in PFTs into an all map.
+        pftAll.insert(std::pair<std::string, Traits>(trait.PFT_ID, trait));
+        all.push_back(trait);
         //  Depending on the mycStat of the new PFT we put the PFT
         //  into the specific vector.
         if (trait.mycStat == "OM") {
@@ -220,66 +224,78 @@ void Environment::ReadPFTDef(const string& file)
         }
     }
     if (PFTCount != -1) {
-        //
-        // We sum the sizes of our PFT vectors for later use
-        double count   = OM.size()+FM.size()+NM.size()+noneM.size();
+        if (pft_ratio_off) {
 
-        double factor  = PFTCount/count;
-        //
-        //  Run it on OMs
-        int take = OM.size()*factor+0.5;
+            for (int i=0; i<PFTCount; ++i) {
+                int index = all.size()*rng.get01();
 
-        if ((OM.size()>0) && (take == 0)) {
-            take=1;
-        }
-        for (int i=0; i<take; ++i) {
-            int index = OM.size()*rng.get01();
+                pftTraitTemplates.insert(std::pair<std::string, Traits>(all[index].PFT_ID, all[index]));
+                pftInsertionOrder.push_back(all[index].PFT_ID);
+                all.erase(all.begin()+index);
+            }
 
-            pftTraitTemplates.insert(std::pair<std::string, Traits>(OM[index].PFT_ID, OM[index]));
-            pftInsertionOrder.push_back(OM[index].PFT_ID);
-            OM.erase(OM.begin()+index);
-        }
-        //
-        //  Run it on NMs
-        take = NM.size()*factor+0.5;
+        } else {
+            //
+            // We sum the sizes of our PFT vectors for later use
+            double count   = OM.size()+FM.size()+NM.size()+noneM.size();
 
-        if ((NM.size()>0) && (take == 0)) {
-            take=1;
-        }
-        for (int i=0; i<take; ++i) {
-            int index = NM.size()*rng.get01();
+            double factor  = PFTCount/count;
+            //
+            //  Run it on OMs
+            int take = OM.size()*factor+0.5;
 
-            pftTraitTemplates.insert(std::pair<std::string, Traits>(NM[index].PFT_ID, NM[index]));
-            pftInsertionOrder.push_back(NM[index].PFT_ID);
-            NM.erase(NM.begin()+index);
-        }
-        //
-        //  Run it on FMs
-        take = FM.size()*factor+0.5;
+            if ((OM.size()>0) && (take == 0)) {
+                take=1;
+            }
+            for (int i=0; i<take; ++i) {
+                int index = OM.size()*rng.get01();
 
-        if ((FM.size()>0) && (take == 0)) {
-            take=1;
-        }
-        for (int i=0; i<take; ++i) {
-            int index = FM.size()*rng.get01();
+                pftTraitTemplates.insert(std::pair<std::string, Traits>(OM[index].PFT_ID, OM[index]));
+                pftInsertionOrder.push_back(OM[index].PFT_ID);
+                OM.erase(OM.begin()+index);
+            }
+            //
+            //  Run it on NMs
+            take = NM.size()*factor+0.5;
 
-            pftTraitTemplates.insert(std::pair<std::string, Traits>(FM[index].PFT_ID, FM[index]));
-            pftInsertionOrder.push_back(FM[index].PFT_ID);
-            FM.erase(FM.begin()+index);
-        }
-        //
-        //  Run it on noneMs
-        take = noneM.size()*factor+0.5;
+            if ((NM.size()>0) && (take == 0)) {
+                take=1;
+            }
+            for (int i=0; i<take; ++i) {
+                int index = NM.size()*rng.get01();
 
-        if ((noneM.size()>0) && (take == 0)) {
-            take=1;
-        }
-        for (int i=0; i<take; ++i) {
-            int index = noneM.size()*rng.get01();
+                pftTraitTemplates.insert(std::pair<std::string, Traits>(NM[index].PFT_ID, NM[index]));
+                pftInsertionOrder.push_back(NM[index].PFT_ID);
+                NM.erase(NM.begin()+index);
+            }
+            //
+            //  Run it on FMs
+            take = FM.size()*factor+0.5;
 
-            pftTraitTemplates.insert(std::pair<std::string, Traits>(noneM[index].PFT_ID, noneM[index]));
-            pftInsertionOrder.push_back(noneM[index].PFT_ID);
-            noneM.erase(noneM.begin()+index);
+            if ((FM.size()>0) && (take == 0)) {
+                take=1;
+            }
+            for (int i=0; i<take; ++i) {
+                int index = FM.size()*rng.get01();
+
+                pftTraitTemplates.insert(std::pair<std::string, Traits>(FM[index].PFT_ID, FM[index]));
+                pftInsertionOrder.push_back(FM[index].PFT_ID);
+                FM.erase(FM.begin()+index);
+            }
+            //
+            //  Run it on noneMs
+            take = noneM.size()*factor+0.5;
+
+            if ((noneM.size()>0) && (take == 0)) {
+                take=1;
+            }
+            for (int i=0; i<take; ++i) {
+                int index = noneM.size()*rng.get01();
+
+                pftTraitTemplates.insert(std::pair<std::string, Traits>(noneM[index].PFT_ID, noneM[index]));
+                pftInsertionOrder.push_back(noneM[index].PFT_ID);
+                noneM.erase(noneM.begin()+index);
+            }
         }
     } else {
         //

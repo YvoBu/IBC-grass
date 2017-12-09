@@ -40,6 +40,9 @@ std::string outputPrefix = DEFAULT_OUTPREFIX;
 //  flag for switch off mycorrhiza simulation.
 bool myc_off = false;
 //
+//  Turn off the ratio feature.
+bool pft_ratio_off = false;
+//
 //  Number of PFTs in the pool of pfts.
 long PFTCount = -1;
 //
@@ -67,6 +70,7 @@ static void dump_help() {
             "\t\t-p          : number of processors to use\n"
             "\t\t-s          : set a starting seed for random number generators\n"
             "\t\t--myc-off   : switch mycorrhiza feedback off\n"
+            "\t\t--pft-ratio-off : do not take ratio between PFTs with specific mycStat into account."
             "\t\t--pft-count : number of PFTs in pool\n"
             "\t\t--init-seed : number of seeds per PFT on init\n"
             "\t\t--grid-size : size of the simulated area in cm\n";
@@ -90,6 +94,8 @@ static void process_long_parameter(string aLongParameter) {
         dump_help();
     } else if (name == "myc-off"){
         myc_off = true;
+    } else if (name == "pft-ratio-off"){
+        pft_ratio_off = true;
     } else if (name == "pft-count") {
         PFTCount = strtol(value.c_str(), 0, 0);
     } else if (name == "init-seed") {
