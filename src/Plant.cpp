@@ -253,7 +253,7 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                 //  uptake not the limiting factor.
                 //  So the difference between Auptake and Buptake after the resource offer to the
                 //  mycorrhiza has been removed from the Auptake, but not below zero.
-#if 0
+#if 1
                 double demand = max(0.0, (Auptake-Buptake));
 #else
                 double demand = Buptake;
