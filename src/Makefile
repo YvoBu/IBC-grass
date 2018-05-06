@@ -17,6 +17,8 @@ SRC=Cell.cpp\
     mycorrhiza.cpp
 
 OBJ=$(SRC:.cpp=.o)
+CXXFLAGS=-DFAST_ERASE_ON_VECTORS
+
 ifdef DEBUG
 CXXFLAGS+=-O0 -g -Wall -std=c++14
 LDFLAGS=-lpthread -g

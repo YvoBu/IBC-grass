@@ -115,7 +115,12 @@ void Cell::SeedMortalityWinter(double aMortality) {
     {
         if (rng.get01() < aMortality)
         {
+#ifdef FAST_ERASE_ON_VECTORS
+            *seed = SeedBankList.back();
+            SeedBankList.pop_back();
+#else
             seed = SeedBankList.erase(seed);
+#endif
         }
         else
         {
@@ -129,7 +134,12 @@ void Cell::SeedMortalityAge() {
     for (std::vector<Seed>::iterator seed= SeedBankList.begin(); seed != SeedBankList.end();)
     {
         if (seed->OldAge()) {
-            seed=SeedBankList.erase(seed);
+#ifdef FAST_ERASE_ON_VECTORS
+            *seed = SeedBankList.back();
+            SeedBankList.pop_back();
+#else
+            seed = SeedBankList.erase(seed);
+#endif
         } else {
             ++seed;
         }

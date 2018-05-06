@@ -6,6 +6,7 @@
 #include <math.h>
 #include <string>
 #include <memory>
+#include <set>
 
 #include "Genet.h"
 #include "Parameters.h"
@@ -54,6 +55,7 @@ public:
 	int isStressed;     			// counter for weeks with resource stress exposure
 	bool isDead;      			// plant dead or alive?
 	bool toBeRemoved;    			// Should the plant be removed from the PlantList?
+    bool iamDeleted;
 
 	// Clonal
     std::vector< Plant* > growingSpacerList;	// List of growing Spacer
@@ -126,7 +128,8 @@ public:
     //  If the plant is non-mycorrhizal or has no mycStat set it refuses to connect the myc.
     bool Attach(CMycorrhiza* aMyc) {if ((mycStat.empty()) || (mycStat=="NM")) {return false;} else {myc = aMyc;return true;}};
     void Detach(void) {myc = 0;};
-
+    static pthread_mutex_t  vmtx;
+    static std::set<Plant*> valid;
 };
 
 #endif

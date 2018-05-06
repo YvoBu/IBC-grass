@@ -58,9 +58,9 @@ Traits::Traits(std::string line, double aFbRate) :
         ss >> mycZOI;
         if (!ss.good()) {
             if (mycStat == "OM") {
-                mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
+                mycZOI = ((rng.getrng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
             } else if (mycStat == "FM") {
-                mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+                mycZOI = (rng.getrng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
             } else if (mycStat == "NM") {
                 mycZOI = 1.0;
             }
@@ -68,9 +68,9 @@ Traits::Traits(std::string line, double aFbRate) :
     } else {
         if (!ss.good()) {
             if (mycStat == "OM") {
-                mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
+                mycZOI = ((rng.getrng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
             } else if (mycStat == "FM") {
-                mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+                mycZOI = (rng.getrng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
             } else if (mycStat == "NM") {
                 mycZOI = 1.0;
             }
@@ -81,9 +81,9 @@ Traits::Traits(std::string line, double aFbRate) :
     }
     if (!ss.good()) {
         if (mycStat == "OM") {
-            mycCOMP = ((rng.rng() |0x01u) / ((double) UINT32_MAX) / 2.0); // generates random number between 0 (0x01u) and 2.0
+            mycCOMP = ((rng.getrng() |0x01u) / ((double) UINT32_MAX) / 2.0); // generates random number between 0 (0x01u) and 2.0
         } else if (mycStat == "FM") {
-            mycCOMP = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+            mycCOMP = (rng.getrng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
         } else if (mycStat == "NM") {
             mycCOMP = 1.0;
         }
@@ -92,9 +92,9 @@ Traits::Traits(std::string line, double aFbRate) :
         ss >> mycCin;
         if (ss.bad()) {
             if (mycStat == "OM") {
-                mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+                mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
             } else if (mycStat == "FM") {
-                mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+                mycC = (rng.getrng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
             } else if (mycStat == "NM") {
                 mycC = 0;
             }
@@ -103,17 +103,17 @@ Traits::Traits(std::string line, double aFbRate) :
         }
     } else {
         if (mycStat == "OM") {
-            mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+            mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
         } else if (mycStat == "FM") {
-            mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+            mycC = (rng.getrng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
         } else if (mycStat == "NM") {
             mycC = 0;
         }
     }
     if (mycStat == "OM") {
-        mycP = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.5; // generates random number between 0.5 and 0.9
+        mycP = (rng.getrng() / (((double) UINT32_MAX ) / 0.4)) + 0.5; // generates random number between 0.5 and 0.9
     } else if (mycStat == "FM") {
-        mycP = (rng.rng() / (((double) UINT32_MAX) / 0.3)) + 0.2; // generates random number between 0.2 and 0.5
+        mycP = (rng.getrng() / (((double) UINT32_MAX) / 0.3)) + 0.2; // generates random number between 0.2 and 0.5
     } else if (mycStat == "NM") {
         mycP = 0;
     }

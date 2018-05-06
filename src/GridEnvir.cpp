@@ -71,7 +71,9 @@ void GridEnvir::OneRun()
     }
 
     do {
+        pthread_spin_lock(&cout_lock);
         std::cout << "y " << year << std::endl;
+        pthread_spin_unlock(&cout_lock);
 
         OneYear();
 
@@ -170,12 +172,12 @@ void GridEnvir::OneWeek()
             !(mode == invasionCriterion &&
                     Environment::year <= Tmax_monoculture)) // Not a monoculture
     {
-        output.TotalShootmass.push_back(GetTotalAboveMass());
-        output.TotalRootmass.push_back(GetTotalBelowMass());
-        output.TotalNonClonalPlants.push_back(GetNPlants());
-        output.TotalClonalPlants.push_back(GetNclonalPlants());
-        output.TotalAboveComp.push_back(GetTotalAboveComp());
-        output.TotalBelowComp.push_back(GetTotalBelowComp());
+        TotalShootmass.push_back(GetTotalAboveMass());
+        TotalRootmass.push_back(GetTotalBelowMass());
+        TotalNonClonalPlants.push_back(GetNPlants());
+        TotalClonalPlants.push_back(GetNclonalPlants());
+        TotalAboveComp.push_back(GetTotalAboveComp());
+        TotalBelowComp.push_back(GetTotalBelowComp());
 
         print_srv_and_PFT(PlantList);
         //
@@ -471,12 +473,20 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     ss << getSimID() 											<< ", ";
     ss << Environment::year															<< ", ";
     ss << Environment::week 														<< ", ";
-    ss << output.BlwgrdGrazingPressure.back()                                              << ", ";
-    ss << output.ContemporaneousRootmassHistory.back()                                 	<< ", ";
+    if (BlwgrdGrazingPressure.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << BlwgrdGrazingPressure.back()                                              << ", ";
+    }
+    if (ContemporaneousRootmassHistory.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << ContemporaneousRootmassHistory.back()                                 	<< ", ";
+    }
     ss << output.calculateShannon(PFT_map) 												<< ", ";
     ss << output.calculateRichness(PFT_map)												<< ", ";
 
-    double brayCurtis = output.calculateBrayCurtis(PFT_map, CatastrophicDistYear - 1, year);
+    double brayCurtis = calculateBrayCurtis(PFT_map, CatastrophicDistYear - 1, year);
     if (!Environment::AreSame(brayCurtis, -1))
     {
         ss << brayCurtis 															<< ", ";
@@ -485,13 +495,36 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     {
         ss << "NA"																	<< ", ";
     }
-
-    ss << output.TotalAboveComp.back()                                                     << ", ";
-    ss << output.TotalBelowComp.back()                                                     << ", ";
-    ss << output.TotalShootmass.back()                                                     << ", ";
-    ss << output.TotalRootmass.back()                                                      << ", ";
-    ss << output.TotalNonClonalPlants.back()                                               << ", ";
-    ss << output.TotalClonalPlants.back()                                                  << ", ";
+    if (TotalAboveComp.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalAboveComp.back()                                                     << ", ";
+    }
+    if (TotalBelowComp.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalBelowComp.back()                                                     << ", ";
+    }
+    if (TotalShootmass.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalShootmass.back()                                                     << ", ";
+    }
+    if (TotalRootmass.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalRootmass.back()                                                     << ", ";
+    }
+    if (TotalNonClonalPlants.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalNonClonalPlants.back()                                                     << ", ";
+    }
+    if (TotalClonalPlants.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalClonalPlants.back()                                                     << ", ";
+    }
     ss << meanTraits["LMR"] 														<< ", ";
     ss << meanTraits["MaxMass"] 													<< ", ";
     ss << meanTraits["Gmax"] 														<< ", ";
@@ -541,7 +574,9 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
         // Write the counts for the pfts.
         aggregatedfile << std::endl;
     } else {
+        pthread_spin_lock(&cout_lock);
         std::cerr << "Could not open aggregatedfile " << filename.str() << std::endl;
+        pthread_spin_unlock(&cout_lock);
     }
     //
     // Allow access from other runs.
@@ -628,9 +663,69 @@ void GridEnvir::OutputGamma() {
 
         gammafile << std::endl;
     } else {
+        pthread_spin_lock(&cout_lock);
         std::cerr << "Could not open gammafile " << oss.str() << std::endl;
+        pthread_spin_unlock(&cout_lock);
     }
     //
     // Let other threads do their output.
     pthread_mutex_unlock(&GridEnvir::gammalock);
+}
+
+
+/*
+ * benchmarkYear is generally the year to prior to disturbance
+ * BC_window is the length of the time period (years) in which PFT populations are averaged to arrive at a stable mean for comparison
+ */
+double GridEnvir::calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PFT_map, int benchmarkYear, int theYear)
+{
+    static const int BC_window = 10;
+
+    // Preparing the "average population counts" in the years preceding the catastrophic disturbance
+    if ((theYear > (benchmarkYear - BC_window)) && (theYear <= benchmarkYear))
+    {
+        // Add this year's population to the PFT's abundance sum over the window
+        for (auto& pft : _PFT_map)
+        {
+            BC_predisturbance_Pop[pft.first] += pft.second.Pop;
+        }
+
+        // If it's the last year before disturbance, divide the population count by the window
+        if (theYear == benchmarkYear)
+        {
+            for (auto& pft_total : BC_predisturbance_Pop)
+            {
+                pft_total.second = pft_total.second / BC_window;
+            }
+        }
+    }
+
+    if (theYear <= benchmarkYear)
+    {
+        return -1;
+    }
+
+    std::vector<int> popDistance;
+    for (auto pft : _PFT_map)
+    {
+        popDistance.push_back( abs( BC_predisturbance_Pop[pft.first] - pft.second.Pop ) );
+    }
+
+    int BC_distance_sum = std::accumulate(popDistance.begin(), popDistance.end(), 0);
+
+    int present_totalAbundance = std::accumulate(_PFT_map.begin(), _PFT_map.end(), 0,
+                                [] (int s, const std::map<string, PFT_struct>::value_type& p)
+                                {
+                                    return s + p.second.Pop;
+                                });
+
+    int past_totalAbundance = std::accumulate(BC_predisturbance_Pop.begin(), BC_predisturbance_Pop.end(), 0,
+                                [] (int s, const std::map<string, int>::value_type& p)
+                                {
+                                    return s + p.second;
+                                });
+
+    int BC_abundance_sum = present_totalAbundance + past_totalAbundance;
+
+    return BC_distance_sum / (double) BC_abundance_sum;
 }

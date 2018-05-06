@@ -116,8 +116,10 @@ void Environment::GetSim(string data)
 		}
 		break;
 	default:
-		cerr << "Invalid mode parameterization" << endl;
-		exit(1);
+        pthread_spin_lock(&cout_lock);
+        cerr << "Invalid mode parameterization" << endl;
+        pthread_spin_unlock(&cout_lock);
+        exit(1);
 	}
 
     if (mode == invasionCriterion)
@@ -231,7 +233,11 @@ void Environment::ReadPFTDef(const string& file)
 
                 pftTraitTemplates.insert(std::pair<std::string, Traits>(all[index].PFT_ID, all[index]));
                 pftInsertionOrder.push_back(all[index].PFT_ID);
-                all.erase(all.begin()+index);
+                //
+                //  Cannot erase from an already empty vector
+                if (!all.empty()) {
+                    all.erase(all.begin()+index);
+                }
             }
 
         } else {
@@ -252,7 +258,11 @@ void Environment::ReadPFTDef(const string& file)
 
                 pftTraitTemplates.insert(std::pair<std::string, Traits>(OM[index].PFT_ID, OM[index]));
                 pftInsertionOrder.push_back(OM[index].PFT_ID);
-                OM.erase(OM.begin()+index);
+                //
+                //  Cannot erase from an already empty vector
+                if (!OM.empty()) {
+                    OM.erase(OM.begin()+index);
+                }
             }
             //
             //  Run it on NMs
@@ -266,7 +276,11 @@ void Environment::ReadPFTDef(const string& file)
 
                 pftTraitTemplates.insert(std::pair<std::string, Traits>(NM[index].PFT_ID, NM[index]));
                 pftInsertionOrder.push_back(NM[index].PFT_ID);
-                NM.erase(NM.begin()+index);
+                //
+                //  Cannot erase from an already empty vector
+                if (!NM.empty()) {
+                    NM.erase(NM.begin()+index);
+                }
             }
             //
             //  Run it on FMs
@@ -280,7 +294,11 @@ void Environment::ReadPFTDef(const string& file)
 
                 pftTraitTemplates.insert(std::pair<std::string, Traits>(FM[index].PFT_ID, FM[index]));
                 pftInsertionOrder.push_back(FM[index].PFT_ID);
-                FM.erase(FM.begin()+index);
+                //
+                //  Cannot erase from an already empty vector
+                if (!FM.empty()) {
+                    FM.erase(FM.begin()+index);
+                }
             }
             //
             //  Run it on noneMs
@@ -294,7 +312,11 @@ void Environment::ReadPFTDef(const string& file)
 
                 pftTraitTemplates.insert(std::pair<std::string, Traits>(noneM[index].PFT_ID, noneM[index]));
                 pftInsertionOrder.push_back(noneM[index].PFT_ID);
-                noneM.erase(noneM.begin()+index);
+                //
+                //  Cannot erase from an already empty vector
+                if (!noneM.empty()) {
+                    noneM.erase(noneM.begin()+index);
+                }
             }
         }
     } else {

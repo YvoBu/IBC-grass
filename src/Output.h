@@ -75,15 +75,6 @@ public:
     void print_row(std::vector<std::string> row, std::ofstream &stream);
 
     // aggregated output
-    std::vector<double> BlwgrdGrazingPressure;
-    std::vector<double> ContemporaneousRootmassHistory;
-    std::vector<double> TotalShootmass;
-    std::vector<double> TotalRootmass;
-    std::vector<double> TotalNonClonalPlants;
-    std::vector<double> TotalClonalPlants;
-    std::vector<double> TotalAboveComp;
-    std::vector<double> TotalBelowComp;
-    std::map<std::string, int> BC_predisturbance_Pop;
 
     std::ofstream param_stream;
     std::ofstream trait_stream;

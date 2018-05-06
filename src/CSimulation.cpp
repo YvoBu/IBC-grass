@@ -23,8 +23,10 @@ CSimulation::CSimulation(int i, std::string aConfig)
 
 bool CSimulation::InitInstance() {
     GetSim(Configuration);
+    pthread_spin_lock(&cout_lock);
     std::cout << getSimID() << std::endl;
     std::cout << "Run " << RunNr << " \n";
+    pthread_spin_unlock(&cout_lock);
 
     InitRun();
 

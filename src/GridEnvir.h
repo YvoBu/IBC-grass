@@ -30,6 +30,17 @@ private:
     void print_ind(const std::vector< Plant* > & PlantList); 			// prints individual data
     void print_aggregated(const std::vector< Plant* > & PlantList);		// prints longitudinal data that's not just each PFT
     void OutputGamma();
+    double calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PFT_map, int benchmarkYear, int theYear); // Bray-Curtis only makes sense with catastrophic disturbances
+
+    std::vector<double> TotalShootmass;
+    std::vector<double> TotalRootmass;
+    std::vector<double> TotalNonClonalPlants;
+    std::vector<double> TotalClonalPlants;
+    std::vector<double> TotalAboveComp;
+    std::vector<double> TotalBelowComp;
+    std::map<std::string, int> BC_predisturbance_Pop;
+
+
 public:
     static pthread_mutex_t gammalock;
     static pthread_mutex_t aggregated_lock;

@@ -79,6 +79,7 @@ Output::Output() :
         PFT_fn("data/out/PFT.txt"),
         ind_fn("data/out/ind.txt")
 {
+#if 0
     BlwgrdGrazingPressure = { 0 };
     ContemporaneousRootmassHistory = { 0 };
     TotalShootmass = { 0 };
@@ -87,6 +88,7 @@ Output::Output() :
     TotalBelowComp = { 0 };
     TotalNonClonalPlants = { 0 };
     TotalClonalPlants = { 0 };
+#endif
     pthread_mutex_init(&outputlock, 0);
     pthread_mutex_init(&openlock, 0);
 }
@@ -259,7 +261,7 @@ double Output::calculateRichness(const std::map<std::string, PFT_struct> & _PFT_
 
     return richness;
 }
-
+#if 0
 /*
  * benchmarkYear is generally the year to prior to disturbance
  * BC_window is the length of the time period (years) in which PFT populations are averaged to arrive at a stable mean for comparison
@@ -316,7 +318,7 @@ double Output::calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PF
 
     return BC_distance_sum / (double) BC_abundance_sum;
 }
-
+#endif
 std::map<std::string, double> Output::calculateMeanTraits(const std::vector< Plant* > & PlantList)
 {
     std::map<std::string, double> weightedMeanTraits;

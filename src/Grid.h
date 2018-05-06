@@ -20,6 +20,10 @@ class Grid : public Environment
 private:
     std::vector<int>                      ZOIBase;
     std::vector< std::shared_ptr<Genet> > GenetList;
+protected:
+    std::vector<double> BlwgrdGrazingPressure;
+    std::vector<double> ContemporaneousRootmassHistory;
+
     void establishRamets(Plant* plant); 	                    // establish ramets
     void shareResources();                						// share resources among connected ramets
     void establishSeedlings(const Seed  & seed);
@@ -49,6 +53,7 @@ public:
     std::vector< Plant*> PlantList;    // plant individuals. This is the anchor place for the plant objects.
     std::vector<int>     below_biomass_history;
     CMycorrhiza          myc;
+    long                 PlantCount;
 
     Grid();
     ~Grid();

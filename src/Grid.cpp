@@ -22,7 +22,7 @@ extern RandomGenerator rng;
 
 Grid::Grid()
 {
-
+     PlantCount = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -69,7 +69,9 @@ void Grid::CellsInit()
                     cell = new CellAsymPartSymV3(x, y);
                     break;
                 default:
+                    pthread_spin_lock(&cout_lock);
                     cerr << "Invalid stabilization mode. Exiting\n";
+                    pthread_spin_unlock(&cout_lock);
                     exit(0);
                 }
             }
@@ -78,7 +80,9 @@ void Grid::CellsInit()
                 cell->SetResource(meanARes, meanBRes);
                 CellList[index] = cell;
             } else {
+                pthread_spin_lock(&cout_lock);
                 cerr << "Something went wrong. \n";
+                pthread_spin_unlock(&cout_lock);
             }
         }
     }
@@ -213,6 +217,11 @@ void Grid::CoverCells()
 {
     for (auto const& plant : PlantList)
     {
+        if (plant->iamDeleted) {
+            pthread_spin_lock(&cout_lock);
+            std::cerr << "Very very hard bug\n";
+            pthread_spin_unlock(&cout_lock);
+        }
         double Ashoot = plant->Area_shoot();
         plant->Ash_disc = floor(Ashoot) + 1;
 
@@ -527,7 +536,9 @@ void Grid::Disturb()
                 Cutting(CutHeight);
             break;
         default:
+            pthread_spin_lock(&cout_lock);
             cerr << "CGrid::Disturb() - wrong input";
+            pthread_spin_unlock(&cout_lock);
             exit(1);
         }
     }
@@ -658,8 +669,8 @@ void Grid::GrazingBelGr()
         fn_o = bt - bt * BelGrazResidualPerc;
     }
 
-    output.BlwgrdGrazingPressure.push_back(fn_o);
-    output.ContemporaneousRootmassHistory.push_back(bt);
+    BlwgrdGrazingPressure.push_back(fn_o);
+    ContemporaneousRootmassHistory.push_back(bt);
 
     double fn = fn_o;
     double t_br = 0; // total biomass removed
@@ -722,7 +733,12 @@ void Grid::RemovePlants()
             myc.Remove(*pli);
             (*pli)->getCell()->occupied = false;
             plantptr.insert(*pli);
+#ifdef FAST_ERASE_ON_VECTORS
+            *pli = PlantList.back();
+            PlantList.pop_back();
+#else
             pli=PlantList.erase(pli);
+#endif
         } else {
             ++pli;
         }
@@ -733,21 +749,33 @@ void Grid::RemovePlants()
     //  Now go one through the Genet-Lists.
     for (std::vector< std::shared_ptr<Genet> >::iterator gi=GenetList.begin(); gi != GenetList.end();) {
         //
-        //  And withing go along the Ramets hold there.
+        //  And within go along the Ramets hold there.
         std::shared_ptr<Genet> g = *gi;
 
         for (std::vector<Plant*>::iterator pli = g->RametList.begin(); pli != g->RametList.end(); ) {
             if ((*pli)->toBeRemoved) {
                 if (plantptr.find(*pli)== plantptr.end()) {
+                    pthread_spin_lock(&cout_lock);
                     std::cerr << "found plant in RametList that should not be there\n";
+                    pthread_spin_unlock(&cout_lock);
                 }
+#ifdef FAST_ERASE_ON_VECTORS
+                *pli = g->RametList.back();
+                g->RametList.pop_back();
+#else
                 pli = g->RametList.erase(pli);
+#endif
             } else {
                 ++pli;
             }
         }
         if (g->RametList.empty()) {
+#ifdef FAST_ERASE_ON_VECTORS
+            *gi = GenetList.back();
+            GenetList.pop_back();
+#else
             gi = GenetList.erase(gi);
+#endif
         } else {
             ++gi;
         }
@@ -808,22 +836,22 @@ void Grid::InitSeeds(string PFT_ID, const int n, const double estab)
 void Grid::SetCellResources()
 {
     int gweek = Environment::week;
+    double a =max(0.0,
+                  (-1.0) * Aampl
+                          * cos(
+                                  2.0 * Pi * gweek
+                                          / double(Environment::WeeksPerYear))
+                          + meanARes);
+    double b =max(0.0,
+                  Bampl
+                          * sin(
+                                  2.0 * Pi * gweek
+                                          / double(Environment::WeeksPerYear))
+                          + meanBRes);
 
     for (int i = 0; i < getGridArea(); ++i) {
         Cell* cell = CellList[i];
-        cell->SetResource(
-                max(0.0,
-                        (-1.0) * Aampl
-                                * cos(
-                                        2.0 * Pi * gweek
-                                                / double(Environment::WeeksPerYear))
-                                + meanARes),
-                max(0.0,
-                        Bampl
-                                * sin(
-                                        2.0 * Pi * gweek
-                                                / double(Environment::WeeksPerYear))
-                                + meanBRes));
+        cell->SetResource(a,b);
     }
 }
 

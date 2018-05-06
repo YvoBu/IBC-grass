@@ -1,6 +1,7 @@
-
+#include <fstream>
 #include <cassert>
 #include <iostream>
+
 
 #include "itv_mode.h"
 #include "Cell.h"
@@ -15,9 +16,12 @@
 #include "mycorrhiza.h"
 
 using namespace std;
-
+extern std::ofstream resfile;
 extern RandomGenerator rng;
 extern bool myc_off;
+
+pthread_mutex_t Plant::vmtx = PTHREAD_MUTEX_INITIALIZER;
+std::set<Plant*>   Plant::valid;
 //-----------------------------------------------------------------------------
 /**
  * constructor - germination
@@ -32,7 +36,7 @@ Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
 		cell(NULL), mReproRamets(0), genet(),
 		plantID(++staticID), x(0), y(0),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
-        isStressed(0), isDead(false), toBeRemoved(false)
+        isStressed(0), isDead(false), toBeRemoved(false), iamDeleted(false)
 {
     myc = 0;
     spacerLengthToGrow = 0;
@@ -53,6 +57,18 @@ Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
 		x = cell->x;
 		y = cell->y;
 	}
+#ifdef MONITOR_PLANT_PTR
+    std::set<Plant*>::iterator pi;
+
+    pthread_mutex_lock(&Plant::vmtx);
+    pi = Plant::valid.find(this);
+    if (pi != Plant::valid.end()) {
+        std::cerr << "big bug. Pointer already in set\n";
+    } else {
+        Plant::valid.insert(this);
+    }
+    pthread_mutex_unlock(&Plant::vmtx);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -64,7 +80,7 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
 		cell(NULL), mReproRamets(0), genet(plant->genet),
 		plantID(++staticID), x(x), y(y),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
-        isStressed(0), isDead(false), toBeRemoved(false)
+        isStressed(0), isDead(false), toBeRemoved(false), iamDeleted(false)
 {
     myc = 0;
     spacerLengthToGrow = 0;
@@ -77,6 +93,18 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
 
     mShoot = m0;
     mRoot = m0;
+#ifdef MONITOR_PLANT_PTR
+    std::set<Plant*>::iterator pi;
+
+    pthread_mutex_lock(&Plant::vmtx);
+    pi = Plant::valid.find(this);
+    if (pi != Plant::valid.end()) {
+        std::cerr << "big bug. Pointer already in set\n";
+    } else {
+        Plant::valid.insert(this);
+    }
+    pthread_mutex_unlock(&Plant::vmtx);
+#endif
 }
 
 //---------------------------------------------------------------------------
@@ -91,6 +119,19 @@ Plant::~Plant()
     for (pi = growingSpacerList.begin(); pi != growingSpacerList.end(); ++pi) {
         delete *pi;
     }
+    iamDeleted = true;
+#ifdef MONITOR_PLANT_PTR
+    std::set<Plant*>::iterator pix;
+
+    pthread_mutex_lock(&Plant::vmtx);
+    pix = Plant::valid.find(this);
+    if (pix != Plant::valid.end()) {
+        Plant::valid.erase(this);
+    } else {
+        std::cerr << "big bug. Pointer not in set\n";
+    }
+    pthread_mutex_unlock(&Plant::vmtx);
+#endif
 }
 
 void Plant::weeklyReset()
@@ -212,10 +253,14 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                 //  uptake not the limiting factor.
                 //  So the difference between Auptake and Buptake after the resource offer to the
                 //  mycorrhiza has been removed from the Auptake, but not below zero.
+#if 0
                 double demand = max(0.0, (Auptake-Buptake));
+#else
+                double demand = Buptake;
+#endif
                 //
                 //  ask for help.
-                double reshelp = myc->HelpMe(this, resoffer, Buptake);
+                double reshelp = myc->HelpMe(this, resoffer, demand);
                 //
                 //  Anyway we take the help from the mycorrhiza
                 Buptake+= reshelp;
@@ -245,11 +290,17 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 
     VegRes = ReproGrow(LimRes, aWeek);
 	// allocation to shoot and root growth
+    //
+    //  The extreme situations here are
+    //
+    //   With Auptake = 0 alloc_shoot gets 1.0
+    //   With Buptake = 0 alloc_shoot gets 0.0
+    //   With Auptake around Buptake alloc_shoot is 0.5
 	alloc_shoot = Buptake / (Buptake + Auptake); // allocation coefficient
 
 	ShootRes = alloc_shoot * VegRes;
 	RootRes = VegRes - ShootRes;
-
+//    resfile << plantID << "," << Auptake<< "," << Buptake << "," << alloc_shoot << "," << ShootRes << "," << RootRes <<std::endl;
 	// Shoot growth
 	dm_shoot = this->ShootGrow(ShootRes);
 
@@ -324,7 +375,7 @@ void Plant::Kill(double aBackgroundMortality)
     assert(memory >= 1);
 
     double pmort = (double(isStressed) / double(memory)) + aBackgroundMortality; // stress mortality + random background mortality
-    double amort = rng.rng() / (double) UINT32_MAX;
+    double amort = rng.getrng() / (double) UINT32_MAX;
 
     if (amort < pmort)
 	{
@@ -466,8 +517,10 @@ double Plant::comp_coef(const int layer, const int symmetry) const
         }
 		break;
 	default:
-		cerr << "CPlant::comp_coef() - wrong input";
-		exit(1);
+        pthread_spin_lock(&cout_lock);
+        cerr << "CPlant::comp_coef() - wrong input";
+        pthread_spin_unlock(&cout_lock);
+        exit(1);
 	}
 
 	return -1;

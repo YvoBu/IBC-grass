@@ -3,7 +3,7 @@
 #include <sstream>
 #include <memory>
 #include <cassert>
-
+#include <fstream>
 #include "CThread.h"
 #include "itv_mode.h"
 #include "Plant.h"
@@ -34,6 +34,8 @@ int    proctoexec =  1;
 #define DEFAULT_SIMFILE   "data/in/SimFile.txt"
 #define DEFAULT_OUTPREFIX "default"
 
+std::ofstream resfile;
+
 std::string NameSimFile = DEFAULT_SIMFILE; 	  // file with simulation scenarios
 std::string outputPrefix = DEFAULT_OUTPREFIX;
 //
@@ -58,6 +60,9 @@ Output output;
 //  This is the mutex to do the management of the running simulations.
 pthread_mutex_t waitmutex;
 pthread_cond_t  wait;
+//
+//  This is a lock to prevent problems while writing some console output.
+pthread_spinlock_t cout_lock;
 //   Support functions for program parameters
 //
 //   This is the usage dumper to the console.
@@ -212,6 +217,8 @@ int main(int argc, char* argv[])
     } else {
         std::cerr << PFTCount;
     }
+
+    //resfile.open("resfile.csv");
     std::cerr << " PFTs from the pool of PFTs\n";
     std::cerr << "Initial seeding uses " << no_init_seeds << " of each PFT used\n";
     //
@@ -231,6 +238,9 @@ int main(int argc, char* argv[])
         // initialize the lock in the simulation class
         pthread_mutex_init(&GridEnvir::gammalock, 0);
         pthread_mutex_init(&GridEnvir::aggregated_lock, 0);
+        //
+        //  Initialize the output lock
+        pthread_spin_init(&cout_lock, PTHREAD_PROCESS_PRIVATE);
         //
         //  Make it crazy save.
         if (getline(SimFile, data).good()) {
