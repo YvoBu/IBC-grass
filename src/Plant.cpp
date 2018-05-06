@@ -233,6 +233,7 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 	/********************************************/
 	/*  dm/dt = growth*(c*m^p - m^q / m_max^r)  */
 	/********************************************/
+#if 0
     if (!myc_off) {
         //
         //  We have mycorrhiza support.
@@ -285,6 +286,7 @@ void Plant::Grow(int aWeek) //grow plant one timestep
         } else {
         }
     }
+#endif
     // which resource is limiting growth?
     LimRes = min(Buptake, Auptake); // two layers
 
