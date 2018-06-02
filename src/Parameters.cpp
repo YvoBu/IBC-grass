@@ -15,7 +15,7 @@ Parameters::Parameters() :
 		Tmax(100),
 		seedMortality(0.5), winterDieback(0.5), backgroundMortality(0.007), litterDecomp(0.5),
 		meanARes(100), meanBRes(100),
-        rametEstab(1),
+        rametEstab(0.2),
 		AbvGrazProb(0), AbvPropRemoved(0), BiteSize(0.5), MassUngrazable(15300),
 		BelGrazProb(0), BelGrazPerc(0), BelGrazResidualPerc(0),
 		BelGrazAlpha(2), BelGrazHistorySize(60),
