@@ -407,8 +407,11 @@ void Grid::establishSeedlings(const Seed& seed)
 
     genet->RametList.push_back(p);
     p->setGenet(genet);
-
+    //
+    //  Add it to the plantlist.
     PlantList.push_back(p);
+    //
+    //  Tell the myc about the new plant.
     myc.Add(p);
 }
 

@@ -5,6 +5,8 @@
 #include <string>
 #include <map>
 
+#include "pft_struct.h"
+
 class GridEnvir: public Grid, public CThread
 {
 
@@ -25,7 +27,7 @@ public:
 private:
     void print_param(); // prints general parameterization data
     void print_srv_and_PFT(const std::vector< Plant* > & PlantList); 	// prints PFT data
-    std::map<std::string, PFT_struct> buildPFT_map(const std::vector< Plant* > & PlantList);
+    void buildPFT_map(const std::vector< Plant* > & PlantList);
     void print_trait(); // prints the traits of each PFT
     void print_ind(const std::vector< Plant* > & PlantList); 			// prints individual data
     void print_aggregated(const std::vector< Plant* > & PlantList);		// prints longitudinal data that's not just each PFT
@@ -39,7 +41,7 @@ private:
     std::vector<double> TotalAboveComp;
     std::vector<double> TotalBelowComp;
     std::map<std::string, int> BC_predisturbance_Pop;
-
+    std::map<std::string, PFT_struct> PFT_Stat;
 
 public:
     static pthread_mutex_t gammalock;

@@ -172,6 +172,11 @@ void GridEnvir::OneWeek()
             !(mode == invasionCriterion &&
                     Environment::year <= Tmax_monoculture)) // Not a monoculture
     {
+        //
+        //  Collect some stats information into the PFT_Stat map.
+        //  We are doing it here only once for the different values to create.
+        buildPFT_map(PlantList);
+
         TotalShootmass.push_back(GetTotalAboveMass());
         TotalRootmass.push_back(GetTotalBelowMass());
         TotalNonClonalPlants.push_back(GetNPlants());
@@ -301,14 +306,10 @@ void GridEnvir::print_param()
 
 void GridEnvir::print_srv_and_PFT(const std::vector< Plant* > & PlantList)
 {
-
-    // Create the data structure necessary to aggregate individuals
-    auto PFT_map = buildPFT_map(PlantList);
-
     // If any PFT went extinct, record it in "srv" stream
     if (srv_out != 0)
     {
-        for (auto it : PFT_map)
+        for (auto it : PFT_Stat)
         {
             if ((Environment::PftSurvTime[it.first] == 0 && it.second.Pop == 0) ||
                     (Environment::PftSurvTime[it.first] == 0 && Environment::year == Tmax))
@@ -333,7 +334,7 @@ void GridEnvir::print_srv_and_PFT(const std::vector< Plant* > & PlantList)
     if (PFT_out != 0)
     {
         // print each PFT
-        for (auto it : PFT_map)
+        for (auto it : PFT_Stat)
         {
             if (PFT_out == 1 &&
                     it.second.Pop == 0 &&
@@ -356,35 +357,29 @@ void GridEnvir::print_srv_and_PFT(const std::vector< Plant* > & PlantList)
             output.print_row(p_ss, output.PFT_stream);
         }
     }
-
-    // delete PFT_map
-    PFT_map.clear();
 }
 
-map<string, PFT_struct> GridEnvir::buildPFT_map(const std::vector< Plant* > & PlantList)
+void GridEnvir::buildPFT_map(const std::vector< Plant* > & PlantList)
 {
-    map<string, PFT_struct> PFT_map;
-
+#if 0
     for (auto const& it : pftTraitTemplates)
     {
-        PFT_map[it.first] = PFT_struct();
+        PFT_Stat[it.first] = PFT_struct();
     }
-
+#endif
+    PFT_Stat.clear();
     // Aggregate individuals
     for (auto const& p : PlantList)
     {
-        if (p->isDead)
+        if (p->isDead) {
             continue;
+        }
 
-        PFT_struct* s = &(PFT_map[p->pft()]);
-
-        s->Pop = s->Pop + 1;
-        s->Rootmass = s->Rootmass + p->mRoot;
-        s->Shootmass = s->Shootmass + p->mShoot;
-        s->Repro = s->Repro + p->mRepro;
+        PFT_Stat[p->pft()].Pop++;
+        PFT_Stat[p->pft()].Rootmass  += p->mRoot;
+        PFT_Stat[p->pft()].Shootmass += p->mShoot;
+        PFT_Stat[p->pft()].Repro     += p->mRepro;
     }
-
-    return PFT_map;
 }
 
 void GridEnvir::print_trait()
@@ -464,8 +459,6 @@ void GridEnvir::print_ind(const std::vector< Plant* > & PlantList)
 void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
 {
 
-    auto PFT_map = buildPFT_map(PlantList);
-
     std::map<std::string, double> meanTraits = output.calculateMeanTraits(PlantList);
 
     std::ostringstream ss;
@@ -483,10 +476,10 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     } else {
         ss << ContemporaneousRootmassHistory.back()                                 	<< ", ";
     }
-    ss << output.calculateShannon(PFT_map) 												<< ", ";
-    ss << output.calculateRichness(PFT_map)												<< ", ";
+    ss << output.calculateShannon(PFT_Stat) 												<< ", ";
+    ss << output.calculateRichness(PFT_Stat)												<< ", ";
 
-    double brayCurtis = calculateBrayCurtis(PFT_map, CatastrophicDistYear - 1, year);
+    double brayCurtis = calculateBrayCurtis(PFT_Stat, CatastrophicDistYear - 1, year);
     if (!Environment::AreSame(brayCurtis, -1))
     {
         ss << brayCurtis 															<< ", ";

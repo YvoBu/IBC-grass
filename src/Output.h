@@ -7,23 +7,7 @@
 #include <map>
 #include <memory>
 
-struct PFT_struct
-{
-        double Shootmass;
-        double Rootmass;
-        double Repro;
-        int Pop;
-
-        PFT_struct() {
-            Shootmass = 0;
-            Rootmass = 0;
-            Repro = 0;
-            Pop = 0;
-        }
-
-        ~PFT_struct(){}
-};
-
+#include "pft_struct.h"
 
 class Output
 {
