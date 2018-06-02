@@ -59,6 +59,8 @@ public:
 
 	// Clonal
     std::vector< Plant* > growingSpacerList;	// List of growing Spacer
+    Plant*                parent;               // As long as the spacer lives and is not a plant
+                                                // it has a parent.
 	double spacerLengthToGrow;
 
 	// Constructors

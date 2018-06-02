@@ -38,7 +38,8 @@ Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
         isStressed(0), isDead(false), toBeRemoved(false), iamDeleted(false)
 {
-    myc = 0;
+    parent             = 0;
+    myc                = 0;
     spacerLengthToGrow = 0;
 
     if (itv == on) {
@@ -82,7 +83,8 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
         isStressed(0), isDead(false), toBeRemoved(false), iamDeleted(false)
 {
-    myc = 0;
+    parent             = 0;
+    myc                = 0;
     spacerLengthToGrow = 0;
 
     if (itv == on) {

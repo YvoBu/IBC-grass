@@ -204,6 +204,7 @@ void Grid::DisperseRamets(Plant* p)
         Plant* Spacer = new Plant(x, y, p, ITV);
         Spacer->spacerLengthToGrow = distance; // This spacer now has to grow to get to its new cell
         p->growingSpacerList.push_back(Spacer);
+        Spacer->parent = p;
     }
 }
 
@@ -340,9 +341,11 @@ void Grid::EstablishmentLottery()
 
         if (plant->clonal && !plant->isDead)
         {
-            establishRamets(plant);
+            collectRamets(plant);
         }
     }
+
+    establishRamets();
 
     int w = Environment::week;
     if ( !( (w >= 1 && w < 5) || (w > 21 && w <= 25) ) ) // establishment is only between weeks 1-4 and 21-25
@@ -363,25 +366,49 @@ void Grid::EstablishmentLottery()
         }
 
  #if 1
-
-        double sumSeedMass = cell->Germinate();
-
-        if ( Environment::AreSame(sumSeedMass, 0) ) // No seeds germinated
+        //
+        //  We have only 8 weeks where we establish new plants.
+        //  1, 2, 3, 4 and 22, 23, 24,25
+        cell->Germinate(8);
+        //
+        //  Check if the sumSeedMass is zero (taking into account data type accuracy)
+//        if ( Environment::AreSame(sumSeedMass, 0) ) // No seeds germinated
+        if (cell->SeedlingList.empty())
         {
             continue;
         }
-        double r = rng.get01();
-        double n = r * sumSeedMass;
+
+//        double r = rng.get01();
+//        double n = r * sumSeedMass;
+        std::vector<Seed>::iterator take_that;
 
         for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
         {
+            if (itr == cell->SeedlingList.begin())
+            {
+                take_that = itr;
+            }
+            else
+            {
+                if (PFT_Stat[itr->PFT_ID].Pop > PFT_Stat[take_that->PFT_ID].Pop)
+                {
+                    take_that = itr;
+                }
+            }
+#if 0
             n -= itr->mass;
             if (n <= 0)
             {
                 establishSeedlings(*itr);
                 break;
             }
+#endif
         }
+        //
+        //  Because the loop above is run only if at least one seed is in the SeedlingList
+        //  and take_that get setup in the loop in all circumstances
+        //  we need no check whether take_that is valid here.
+        establishSeedlings(*take_that);
         cell->SeedlingList.clear();
 #else
         std::vector< Seed> seedlings = cell->Germinate();
@@ -417,6 +444,137 @@ void Grid::establishSeedlings(const Seed& seed)
 
 //-----------------------------------------------------------------------------
 
+void Grid::collectRamets(Plant* plant)
+{
+    auto spacer_itr = plant->growingSpacerList.begin();
+
+    while (spacer_itr != plant->growingSpacerList.end())
+    {
+        const auto& spacer = *spacer_itr;
+
+        if (spacer->spacerLengthToGrow > 0) // This spacer still has to grow more, keep it.
+        {
+            spacer_itr++;
+            continue;
+        }
+        //
+        //  The spacer has been grown long enough here.
+        Cell* cell = CellList[spacer->x * GridSize + spacer->y];
+        //
+        //  Check if it is a free cell.
+        if (!cell->occupied)
+        {
+            //
+            // lottery.
+            //  The pEstab value is the probability per Year.
+            if (rng.get01() < (spacer->pEstab)/WeeksPerYear)
+            {
+                cell->SpacerReadyList.push_back(spacer);
+            }
+        }
+        ++spacer_itr;
+    }
+}
+
+void Grid::establishRamets()
+{
+    for (int i = 0; i < getGridArea(); ++i)
+    {
+        //
+        //  Check if we have any spacer ready.
+        if (!CellList[i]->SpacerReadyList.empty())
+        {
+            //
+            //  Check if we have any kind of competition here.
+            if (CellList[i]->SpacerReadyList.size() == 1)
+            {
+                //
+                //  With no competition here its easy.
+                std::list<Plant*>::iterator si = CellList[i]->SpacerReadyList.begin();
+                Plant* spacer = *si;
+                // This spacer successfully establishes into a ramet (CPlant) of a genet
+                auto Genet = spacer->getGenet().lock();
+                assert(Genet);
+
+                Genet->RametList.push_back(spacer);
+                spacer->setCell(CellList[i]);
+                //
+                //  It is now a plant.
+                PlantList.push_back(spacer);
+                //
+                //  Remove the spacer from its parents GrowingSpacerList.
+                //  Because we do not have any iterator or index available to select the spacer in the growingspacerlist we must search for
+                //  the spacer-pointer and remove it then.
+                //
+                for (std::vector<Plant*>::iterator pi=spacer->parent->growingSpacerList.begin(); pi != spacer->parent->growingSpacerList.end(); ++pi)
+                {
+                    if (*pi == spacer)
+                    {
+                        spacer->parent->growingSpacerList.erase(pi);
+                        spacer->parent = 0;
+                        break;
+                    }
+                }
+                //
+                //  Add the spacer into the mycorrhiza object.
+                myc.Add(spacer);
+
+            }
+            else
+            {
+                std::list<Plant*>::iterator take_that;
+
+                for (std::list<Plant*>::iterator itr = CellList[i]->SpacerReadyList.begin(); itr != CellList[i]->SpacerReadyList.end(); ++itr)
+                {
+                    if (itr == CellList[i]->SpacerReadyList.begin())
+                    {
+                        take_that = itr;
+                    }
+                    else
+                    {
+                        if (PFT_Stat[(*itr)->PFT_ID].Pop > PFT_Stat[(*take_that)->PFT_ID].Pop)
+                        {
+                            take_that = itr;
+                        }
+                    }
+                }
+
+                Plant* spacer = *take_that;
+                // This spacer successfully establishes into a ramet (CPlant) of a genet
+                auto Genet = spacer->getGenet().lock();
+                assert(Genet);
+
+                Genet->RametList.push_back(spacer);
+                spacer->setCell(CellList[i]);
+                //
+                //  It is now a plant.
+                PlantList.push_back(spacer);
+                //
+                //  Remove the spacer from its parents GrowingSpacerList.
+                //  Because we do not have any iterator or index available to select the spacer in the growingspacerlist we must search for
+                //  the spacer-pointer and remove it then.
+                //
+                for (std::vector<Plant*>::iterator pi=spacer->parent->growingSpacerList.begin(); pi != spacer->parent->growingSpacerList.end(); ++pi)
+                {
+                    if (*pi == spacer)
+                    {
+                        spacer->parent->growingSpacerList.erase(pi);
+                        spacer->parent = 0;
+                        break;
+                    }
+                }
+                //
+                //  Add the spacer into the mycorrhiza object.
+                myc.Add(spacer);
+
+            }
+            //
+            //  Clean up the spacer ready list for next week.
+            CellList[i]->SpacerReadyList.clear();
+        }
+    }
+}
+
 void Grid::establishRamets(Plant* plant)
 {
     auto spacer_itr = plant->growingSpacerList.begin();
@@ -439,7 +597,8 @@ void Grid::establishRamets(Plant* plant)
         {
             //
             // lottery.
-            if (rng.get01() < spacer->pEstab)
+            //  The pEstab value is the probability per Year.
+            if (rng.get01() < (spacer->pEstab)/WeeksPerYear)
             {
                 // This spacer successfully establishes into a ramet (CPlant) of a genet
                 auto Genet = spacer->getGenet().lock();
@@ -461,7 +620,6 @@ void Grid::establishRamets(Plant* plant)
             //
             //  Space has done its purpose. Remove it from the spacer list.
             spacer_itr = plant->growingSpacerList.erase(spacer_itr);
-
         }
         else
         {

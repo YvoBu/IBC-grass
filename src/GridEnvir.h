@@ -41,9 +41,9 @@ private:
     std::vector<double> TotalAboveComp;
     std::vector<double> TotalBelowComp;
     std::map<std::string, int> BC_predisturbance_Pop;
-    std::map<std::string, PFT_struct> PFT_Stat;
 
 public:
+
     static pthread_mutex_t gammalock;
     static pthread_mutex_t aggregated_lock;
 

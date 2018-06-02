@@ -3,7 +3,7 @@
 #define SRC_CELL_H_
 
 #include <vector>
-
+#include <list>
 #include "Traits.h"
 #include "Plant.h"
 #include "Seed.h"
@@ -29,6 +29,8 @@ public:
     std::vector< Seed > SeedBankList; // List of all (ungerminated) seeds in the cell
     std::vector< Seed > SeedlingList; // List of all freshly germinated seedlings in the cell
 public:
+    std::list <Plant*> SpacerReadyList;  // List of spacers in this cell to become a plant.
+public:
     std::map<std::string, int> PftNIndA; // Plants covering the cell aboveground
     std::map<std::string, int> PftNIndB; // Plants covering the cell belowground
 
@@ -43,6 +45,7 @@ public:
     void weeklyReset();
     void SetResource(double Ares, double Bres);
     double Germinate();
+    void Germinate(unsigned weeks);
 #if 0
     std::vector<Seed> Germinate();
 #endif

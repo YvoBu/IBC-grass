@@ -83,6 +83,22 @@ double Cell::Germinate()
     return sum_SeedMass;
 }
 
+void Cell::Germinate(unsigned weeks)
+{
+    for (std::vector<Seed>::iterator it = SeedBankList.begin(); it != SeedBankList.end(); )
+    {
+        if (rng.get01() < (it->pSeedEstab)/weeks)
+        {
+            SeedlingList.push_back(*it); // This seed germinates, add it to seedlings
+            it = SeedBankList.erase(it); // Remove its iterator from the SeedBankList, which now holds only ungerminated seeds
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
 #if 0
 std::vector<Seed> Cell::Germinate()
 {
