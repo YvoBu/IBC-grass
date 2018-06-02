@@ -439,7 +439,7 @@ void Grid::establishRamets(Plant* plant)
         {
             //
             // lottery.
-            if (rng.get01() < rametEstab)
+            if (rng.get01() < spacer->pEstab)
             {
                 // This spacer successfully establishes into a ramet (CPlant) of a genet
                 auto Genet = spacer->getGenet().lock();
