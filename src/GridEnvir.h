@@ -32,6 +32,8 @@ private:
     void print_ind(const std::vector< Plant* > & PlantList); 			// prints individual data
     void print_aggregated(const std::vector< Plant* > & PlantList);		// prints longitudinal data that's not just each PFT
     void OutputGamma();
+    void OutputCompetitionImage();
+    void OutputOccupantImage();
     double calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PFT_map, int benchmarkYear, int theYear); // Bray-Curtis only makes sense with catastrophic disturbances
 
     std::vector<double> TotalShootmass;
@@ -41,6 +43,8 @@ private:
     std::vector<double> TotalAboveComp;
     std::vector<double> TotalBelowComp;
     std::map<std::string, int> BC_predisturbance_Pop;
+    uint32_t*                                     OccupantImage;
+    uint32_t*                                     CompetitionImage;
 
 public:
 

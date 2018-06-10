@@ -13,6 +13,7 @@
 
 using namespace std;
 extern RandomGenerator rng;
+extern bool            neutral;
 
 /*
  * Default constructor
@@ -66,6 +67,14 @@ Traits::Traits(std::string line, double aFbRate) :
             }
         }
     } else {
+        double r = rng.get01();
+        if (r < 0.12) {
+            mycStat = "NM";
+        } else if (r < 0.48) {
+            mycStat = "FM";
+        } else {
+            mycStat = "OM";
+        }
         if (!ss.good()) {
             if (mycStat == "OM") {
                 mycZOI = ((rng.getrng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
@@ -92,7 +101,7 @@ Traits::Traits(std::string line, double aFbRate) :
         ss >> mycCin;
         if (ss.bad()) {
             if (mycStat == "OM") {
-                mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+                mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
             } else if (mycStat == "FM") {
                 mycC = (rng.getrng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
             } else if (mycStat == "NM") {
@@ -103,7 +112,7 @@ Traits::Traits(std::string line, double aFbRate) :
         }
     } else {
         if (mycStat == "OM") {
-            mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+            mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
         } else if (mycStat == "FM") {
             mycC = (rng.getrng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
         } else if (mycStat == "NM") {
@@ -111,11 +120,17 @@ Traits::Traits(std::string line, double aFbRate) :
         }
     }
     if (mycStat == "OM") {
-        mycP = (rng.getrng() / (((double) UINT32_MAX ) / 0.4)) + 0.5; // generates random number between 0.5 and 0.9
+        mycP = (rng.getrng() / (((double) UINT32_MAX ) / 0.45)) + 0.45; // generates random number between 0.45 and 0.9
     } else if (mycStat == "FM") {
-        mycP = (rng.getrng() / (((double) UINT32_MAX) / 0.3)) + 0.2; // generates random number between 0.2 and 0.5
+        mycP = (rng.getrng() / (((double) UINT32_MAX) / 0.45)) + 0.45; // generates random number between 0.45 and 0.9
     } else if (mycStat == "NM") {
         mycP = 0;
+    }
+    if (neutral) {
+        mycZOI  = 1.0;
+        mycCOMP = 1.0;
+        mycC    = 0.0;
+        mycP    = 0.0;
     }
     //std::cerr << "Stat: " << mycStat << "::" << mycP << std::endl;
     // optimization for maxMass calculation
@@ -124,7 +139,7 @@ Traits::Traits(std::string line, double aFbRate) :
     growth_SLA_Gmax  = growth*SLA*Gmax;
     //
     //  Set the feedback rate for this PFT.
-    mycFbrate        = aFbRate;
+    mycFbrate        = mycP;
 }
 //-----------------------------------------------------------------------------
 /**

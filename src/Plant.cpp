@@ -41,6 +41,7 @@ Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
     parent             = 0;
     myc                = 0;
     spacerLengthToGrow = 0;
+    maxAuptake         = 0.0;
 
     if (itv == on) {
         assert(myTraitType == Traits::individualized);
@@ -86,6 +87,7 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
     parent             = 0;
     myc                = 0;
     spacerLengthToGrow = 0;
+    maxAuptake         = 0.0;
 
     if (itv == on) {
         assert(myTraitType == Traits::individualized);
@@ -138,10 +140,11 @@ Plant::~Plant()
 
 void Plant::weeklyReset()
 {
-	Auptake = 0;
-	Buptake = 0;
-	Ash_disc = 0;
-	Art_disc = 0;
+    Auptake    = 0;
+    maxAuptake = 0;
+    Buptake    = 0;
+    Ash_disc   = 0;
+    Art_disc   = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -231,33 +234,72 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 {
 	double dm_shoot, dm_root, alloc_shoot;
 	double LimRes, ShootRes, RootRes, VegRes;
-
+    double resoffer = 0;   //  If the mycorrhiza gets some offer it will showup here
 	/********************************************/
 	/*  dm/dt = growth*(c*m^p - m^q / m_max^r)  */
 	/********************************************/
-#if 0
+    //
+    //
+    //  We are working in to steps.
+    //
+    //  In the first step we need to calculate the normal shoot growth based on
+    //  the already calculated Auptake and Buptage values.
+    //  For this step we need some calculations that are done again later
+    //  with some corrected resource values.
+    LimRes = min(Buptake, Auptake); // two layers
+#if 1
     if (!myc_off) {
         //
         //  We have mycorrhiza support.
         if (myc != 0) {
             //
+            //  Reduce the resource amount by the reproduction resources needed.
+            if (mRepro <= allocSeed * mShoot)
+            {
+                double SeedRes = LimRes * allocSeed;
+                double SpacerRes = LimRes * allocSpacer;
+
+                // during the seed-production-weeks
+                if ((aWeek >= flowerWeek) && (aWeek < dispersalWeek))
+                {
+                    //clonal growth
+                    double d = max(0.0, min(SpacerRes, LimRes - SeedRes)); // for large AllocSeed, resources may be < SpacerRes, then only take remaining resources
+
+                    VegRes = LimRes - SeedRes - d;
+                }
+                else
+                {
+                    VegRes = LimRes - SpacerRes;
+                }
+            }
+            else
+            {
+                VegRes = LimRes;
+            }
+            //
+            //  Here we have the available resources calculated.
+            //
+            //  allocation to shoot and root growth
+            //  calculation is based on the original values.
+            alloc_shoot = Buptake / (Buptake + Auptake); // allocation coefficient
+            //
+            //  Only calculating the resources allocated to the shoot growth.
+            ShootRes = alloc_shoot * VegRes;
+            //
+            //  Calculation of the shoot mass growth.
+            //  This value is needed for calculation of growth reduction in case of
+            dm_shoot = this->ShootGrow(ShootRes);
+            //
             //  Buptake is limiting. Ask for help.
             if (Buptake < Auptake) {
                 //
-                //  Calculating amount of resource to take from a-uptake
-                double resoffer = Auptake * mycC;
+                //  Calculating amount of biomass that we loose on growth
+                resoffer = dm_shoot * mycC;
                 //
-                //  Reduce a-uptake. resoffer can not be larger than Auptake.
-                //  Therefor Auptake cannot be reduced below zero.
-                //  No checks needed.
-                Auptake-=resoffer;
-                //
-                //  The demand is the resource amount that is needed to make the below-ground
-                //  uptake not the limiting factor.
-                //  So the difference between Auptake and Buptake after the resource offer to the
-                //  mycorrhiza has been removed from the Auptake, but not below zero.
+                //  The demand is the possible maximum that the plant can get because of
+                //  the covered cells.
 #if 1
-                double demand = max(0.0, (Auptake-Buptake));
+                double demand = maxAuptake;
 #else
                 double demand = Buptake;
 #endif
@@ -274,6 +316,8 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                 if (Buptake < 0.0) {
                     Buptake = 0.0;
                 }
+                LimRes = Buptake;
+#if 0
                 //
                 //  But if we are an FM class plant we check the benefit
                 if ((mycStat == "FM") && (reshelp < resoffer)) {
@@ -283,15 +327,25 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                     myc->Detach(this);
                     myc = 0;
                 }
+#endif
             } else {
+                //
+                //  Not limiting
+                //
+                //  OMs are always loosing biomass to mycorrhiza.
+                if (mycStat == "OM") {
+                    //
+                    //  Calculating amount of biomass that we loose on growth
+                    resoffer = dm_shoot * mycC;
+                }
             }
         } else {
         }
     }
 #endif
-    // which resource is limiting growth?
-    LimRes = min(Buptake, Auptake); // two layers
-
+    //
+    //  VegRes are the resources available for growth.
+    //  It may be reduced for reproduction
     VegRes = ReproGrow(LimRes, aWeek);
 	// allocation to shoot and root growth
     //
@@ -306,7 +360,7 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 	RootRes = VegRes - ShootRes;
 //    resfile << plantID << "," << Auptake<< "," << Buptake << "," << alloc_shoot << "," << ShootRes << "," << RootRes <<std::endl;
 	// Shoot growth
-	dm_shoot = this->ShootGrow(ShootRes);
+    dm_shoot = (this->ShootGrow(ShootRes) - resoffer);
 
 	// Root growth
 	dm_root = this->RootGrow(RootRes);
@@ -339,7 +393,7 @@ double Plant::ShootGrow(double shres)
 	double p = 2.0 / 3.0;
 	double q = 2.0;
 
-    Assim_shoot = growth * min(shres, Gmax * Ash_disc);                                 //growth limited by maximal resource per area -> similar to uptake limitation
+    Assim_shoot = growth * min(shres, Gmax * Ash_disc);                             //growth limited by maximal resource per area -> similar to uptake limitation
     Resp_shoot = growth_SLA_Gmax * pow(LMR, p) * pow(mShoot, q) / maxMassPow_4_3rd; //respiration proportional to mshoot^2
 
 	return max(0.0, Assim_shoot - Resp_shoot);
@@ -357,7 +411,7 @@ double Plant::RootGrow(double rres)
 	//exponents for growth function
 	double q = 2.0;
 
-    Assim_root = growth * min(rres, Gmax * Art_disc); //growth limited by maximal resource per area -> similar to uptake limitation
+    Assim_root = growth * min(rres, Gmax * Art_disc);                //growth limited by maximal resource per area -> similar to uptake limitation
     Resp_root = growth_RAR_Gmax * pow(mRoot, q) / maxMassPow_4_3rd;  //respiration proportional to root^2
 
 	return max(0.0, Assim_root - Resp_root);
@@ -500,6 +554,8 @@ void Plant::WinterLoss(double aWinterDieback)
  */
 double Plant::comp_coef(const int layer, const int symmetry) const
 {
+    double retval = -1;
+
 	switch (symmetry)
 	{
 	case 1:
@@ -513,10 +569,9 @@ double Plant::comp_coef(const int layer, const int symmetry) const
             return mShoot * CompPowerA();
         }
         if (layer == 2) {
-            if (myc_off) {
-                return mRoot * CompPowerB();
-            } else {
-                return mRoot * CompPowerB() * ((myc != 0)?mycCOMP:1.0);
+            retval = mRoot * CompPowerB();
+            if (!myc_off) {
+                retval = mRoot * CompPowerB() * ((myc != 0)?mycCOMP:1.0);
             }
         }
 		break;
@@ -527,20 +582,23 @@ double Plant::comp_coef(const int layer, const int symmetry) const
         exit(1);
 	}
 
-	return -1;
+    return retval;
 }
 
 double Plant::Area_root() {
+    double retval = RAR * pow(mRoot, 2.0 / 3.0);
+
     if (!myc_off) {
-      return RAR * pow(mRoot, 2.0 / 3.0) * ((myc != 0)?mycZOI:1.0);
+      retval = RAR * pow(mRoot, 2.0 / 3.0) * ((myc != 0)?mycZOI:1.0);
   } else {
-      return RAR * pow(mRoot, 2.0 / 3.0);
   }
+  return retval;
 }
 double Plant::Radius_root() {
+    double retval = sqrt(RAR * pow(mRoot, 2.0 / 3.0) / Pi);
     if (!myc_off) {
-        return sqrt(RAR * ((myc != 0)?mycZOI:1.0) * pow(mRoot, 2.0 / 3.0) / Pi);
+        retval = sqrt(RAR * ((myc != 0)?mycZOI:1.0) * pow(mRoot, 2.0 / 3.0) / Pi);
     } else {
-        return sqrt(RAR * pow(mRoot, 2.0 / 3.0) / Pi);
     }
+    return retval;
 }

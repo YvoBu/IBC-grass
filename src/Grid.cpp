@@ -17,6 +17,7 @@
 using namespace std;
 
 extern RandomGenerator rng;
+extern bool myc_off;
 
 //---------------------------------------------------------------------------
 
@@ -67,6 +68,17 @@ void Grid::CellsInit()
                     break;
                 case version3:
                     cell = new CellAsymPartSymV3(x, y);
+                    break;
+                default:
+                    pthread_spin_lock(&cout_lock);
+                    cerr << "Invalid stabilization mode. Exiting\n";
+                    pthread_spin_unlock(&cout_lock);
+                    exit(0);
+                }
+            } else if ((BelowCompMode == asympart) && (AboveCompMode == asympart)) {
+                switch (stabilization) {
+                case version2:
+                    cell = new CellAsymPartAsymV2(x, y);
                     break;
                 default:
                     pthread_spin_lock(&cout_lock);
@@ -333,20 +345,33 @@ void Grid::EstablishmentLottery()
      * than a reference to a shared_ptr, thus avoiding invalidation of the reference
      */
 
-    size_t original_size = PlantList.size();
+    if (!myc_off) {
+        size_t original_size = PlantList.size();
 
-    for (size_t i = 0; i < original_size; ++i)
-    {
-        auto const& plant = PlantList[i];
-
-        if (plant->clonal && !plant->isDead)
+        for (size_t i = 0; i < original_size; ++i)
         {
-            collectRamets(plant);
+            auto const& plant = PlantList[i];
+
+            if (plant->clonal && !plant->isDead)
+            {
+                collectRamets(plant);
+            }
+        }
+
+        establishRamets();
+    } else {
+        size_t original_size = PlantList.size();
+
+        for (size_t i = 0; i < original_size; ++i)
+        {
+            auto const& plant = PlantList[i];
+
+            if (plant->clonal && !plant->isDead)
+            {
+                establishRamets(plant);
+            }
         }
     }
-
-    establishRamets();
-
     int w = Environment::week;
     if ( !( (w >= 1 && w < 5) || (w > 21 && w <= 25) ) ) // establishment is only between weeks 1-4 and 21-25
 //	if ( !( (w >= 1 && w < 5) || (w >= 21 && w < 25) ) ) // establishment is only between weeks 1-4 and 21-25
@@ -364,60 +389,68 @@ void Grid::EstablishmentLottery()
         {
             continue;
         }
-
- #if 1
-        //
-        //  We have only 8 weeks where we establish new plants.
-        //  1, 2, 3, 4 and 22, 23, 24,25
-        cell->Germinate(8);
-        //
-        //  Check if the sumSeedMass is zero (taking into account data type accuracy)
-//        if ( Environment::AreSame(sumSeedMass, 0) ) // No seeds germinated
-        if (cell->SeedlingList.empty())
-        {
-            continue;
-        }
-
-//        double r = rng.get01();
-//        double n = r * sumSeedMass;
-        std::vector<Seed>::iterator take_that;
-
-        for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
-        {
-            if (itr == cell->SeedlingList.begin())
+        if (!myc_off) {
+            //
+            //  We have only 8 weeks where we establish new plants.
+            //  1, 2, 3, 4 and 22, 23, 24,25
+            cell->Germinate(8u);
+            //
+            if (cell->SeedlingList.empty())
             {
-                take_that = itr;
+                continue;
             }
-            else
+
+            std::vector<Seed>::iterator take_that;
+
+            for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
             {
-                if (PFT_Stat[itr->PFT_ID].Pop > PFT_Stat[take_that->PFT_ID].Pop)
+                if (itr == cell->SeedlingList.begin())
                 {
                     take_that = itr;
                 }
+                else
+                {
+                    if (PFT_Stat[itr->PFT_ID].Pop > PFT_Stat[take_that->PFT_ID].Pop)
+                    {
+                        take_that = itr;
+                    }
+                }
             }
-#if 0
-            n -= itr->mass;
-            if (n <= 0)
-            {
-                establishSeedlings(*itr);
-                break;
-            }
-#endif
-        }
-        //
-        //  Because the loop above is run only if at least one seed is in the SeedlingList
-        //  and take_that get setup in the loop in all circumstances
-        //  we need no check whether take_that is valid here.
-        establishSeedlings(*take_that);
-        cell->SeedlingList.clear();
-#else
-        std::vector< Seed> seedlings = cell->Germinate();
-
-        if (!seedlings.empty()) {
             //
-            //  Do some selection stuff from the list of seedsling ready.
+            //  Because the loop above is run only if at least one seed is in the SeedlingList
+            //  and take_that get setup in the loop in all circumstances
+            //  we need no check whether take_that is valid here.
+            establishSeedlings(*take_that);
+            cell->SeedlingList.clear();
+        } else {
+            //
+            //  We have only 8 weeks where we establish new plants.
+            //  1, 2, 3, 4 and 22, 23, 24,25
+            double sumSeedMass = cell->Germinate(8.0);
+
+            if (cell->SeedlingList.empty())
+            {
+                continue;
+            }
+
+            double r = rng.get01();
+            double n = r * sumSeedMass;
+
+            for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
+            {
+                n -= itr->mass;
+                if (n <= 0)
+                {
+                    establishSeedlings(*itr);
+                    break;
+                }
+            }
+            //
+            //  Because the loop above is run only if at least one seed is in the SeedlingList
+            //  and take_that get setup in the loop in all circumstances
+            //  we need no check whether take_that is valid here.
+            cell->SeedlingList.clear();
         }
-#endif
     }
 }
 
@@ -598,6 +631,7 @@ void Grid::establishRamets(Plant* plant)
             //
             // lottery.
             //  The pEstab value is the probability per Year.
+//            if (rng.get01() < (rametEstab))
             if (rng.get01() < (spacer->pEstab)/WeeksPerYear)
             {
                 // This spacer successfully establishes into a ramet (CPlant) of a genet

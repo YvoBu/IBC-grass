@@ -21,7 +21,7 @@ class CMycorrhiza;
 
 class Plant : public Traits
 {
-private:
+public:
     Cell*        cell;
     CMycorrhiza* myc;
 
@@ -50,6 +50,7 @@ public:
 	int Art_disc; 				// discrete below-ground ZOI area
 
 	double Auptake; 			// uptake of above-ground resource in one time step
+    double maxAuptake;          // max possible above-ground resource without competition.
 	double Buptake; 			// uptake below-ground resource one time step
 
 	int isStressed;     			// counter for weeks with resource stress exposure

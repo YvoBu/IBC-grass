@@ -62,13 +62,15 @@ void Cell::SetResource(double Ares, double Bres)
 
 //-----------------------------------------------------------------------------
 
-double Cell::Germinate()
+double Cell::Germinate(double weeks)
 {
     double sum_SeedMass = 0;
 
     for (std::vector<Seed>::iterator it = SeedBankList.begin(); it != SeedBankList.end(); )
     {
-        if (rng.get01() < it->pSeedEstab)
+        //
+        //  Division by 8 weeks of establishment.
+        if (rng.get01() < (it->pSeedEstab/weeks))
         {
             sum_SeedMass += it->mass;
             SeedlingList.push_back(*it); // This seed germinates, add it to seedlings
@@ -99,30 +101,6 @@ void Cell::Germinate(unsigned weeks)
     }
 }
 
-#if 0
-std::vector<Seed> Cell::Germinate()
-{
-    double sum_SeedMass = 0;
-    std::vector<Seed> retval;
-
-    for (std::vector<Seed>::iterator it = SeedBankList.begin(); it != SeedBankList.end(); )
-    {
-        if (rng.get01() < it->pEstab)
-        {
-            sum_SeedMass += it->mass;
-            retval.push_back(*it);        // This seed germinates, add it to seedlings
-            it = SeedBankList.erase(it);  // Remove its iterator from the SeedBankList, which now holds only ungerminated seeds
-        }
-        else
-        {
-            ++it;
-        }
-    }
-
-    return retval;
-}
-#endif
-
 //-----------------------------------------------------------------------------
 
 void Cell::SeedMortalityWinter(double aMortality) {
@@ -145,6 +123,7 @@ void Cell::SeedMortalityWinter(double aMortality) {
         }
     }
 }
+
 
 void Cell::SeedMortalityAge() {
     for (std::vector<Seed>::iterator seed= SeedBankList.begin(); seed != SeedBankList.end();)
@@ -330,8 +309,9 @@ void CellAsymPartSymV1::AboveComp() {
     //2. distribute resources
     for (std::vector<Plant*>::iterator pi = AbovePlantList.begin(); pi != AbovePlantList.end(); ++pi)
     {
-        comp_c = (*pi)->comp_coef(1, 2);
-        (*pi)->Auptake += AResConc * comp_c / comp_tot;
+        comp_c             = (*pi)->comp_coef(1, 2);
+        (*pi)->Auptake    += AResConc * comp_c / comp_tot;
+        (*pi)->maxAuptake += AResConc;
     }
 
     aComp_weekly = comp_tot;
@@ -378,8 +358,9 @@ void CellAsymPartSymV2::AboveComp() {
     //2. distribute resources
     for (std::vector<Plant*>::iterator pi = AbovePlantList.begin(); pi != AbovePlantList.end(); ++pi)
     {
-        comp_c = (*pi)->comp_coef(1, 2) * prop_res_above((*pi)->pft());
-        (*pi)->Auptake += (AResConc * comp_c / comp_tot);
+        comp_c             = (*pi)->comp_coef(1, 2) * prop_res_above((*pi)->pft());
+        (*pi)->Auptake    += (AResConc * comp_c / comp_tot);
+        (*pi)->maxAuptake += AResConc;
     }
 
     aComp_weekly = comp_tot;
@@ -402,6 +383,29 @@ void CellAsymPartSymV2::BelowComp() {
     for (std::vector<Plant*>::iterator pi = BelowPlantList.begin(); pi != BelowPlantList.end(); ++pi)
     {
         comp_c = (*pi)->comp_coef(2, 1) * prop_res_below((*pi)->pft());
+        (*pi)->Buptake += BResConc * comp_c / comp_tot;
+    }
+
+    bComp_weekly = comp_tot;
+}
+
+void CellAsymPartAsymV2::BelowComp() {
+    if (BelowPlantList.empty())
+        return;
+
+    double comp_tot = 0;
+    double comp_c = 0;
+
+    //1. sum of resource requirement
+    for (std::vector<Plant*>::iterator pi = BelowPlantList.begin(); pi != BelowPlantList.end(); ++pi)
+    {
+        comp_tot += (*pi)->comp_coef(2, 2) * prop_res_below((*pi)->pft());
+    }
+
+    //2. distribute resources
+    for (std::vector<Plant*>::iterator pi = BelowPlantList.begin(); pi != BelowPlantList.end(); ++pi)
+    {
+        comp_c = (*pi)->comp_coef(2, 2) * prop_res_below((*pi)->pft());
         (*pi)->Buptake += BResConc * comp_c / comp_tot;
     }
 

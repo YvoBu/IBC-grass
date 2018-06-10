@@ -1,6 +1,8 @@
-
+#include <memory.h>
 #include <iostream>
 #include <cassert>
+#include <fstream>
+#include <iomanip>
 #include <sstream>
 #include "itv_mode.h"
 #include "Traits.h"
@@ -19,7 +21,7 @@ pthread_mutex_t GridEnvir::aggregated_lock;
 //  This is the nu,ber if seeds to be put into the grid per PFT.
 //  It can be overridden for all runs from the command line.
 extern long no_init_seeds;
-
+extern bool output_images;
 //------------------------------------------------------------------------------
 
 GridEnvir::GridEnvir() { }
@@ -32,6 +34,9 @@ void GridEnvir::InitRun()
 {
     CellsInit();
     InitInds();
+    OccupantImage    = new uint32_t[GridSize*GridSize];
+    CompetitionImage = new uint32_t[GridSize*GridSize];
+
 }
 
 //-----------------------------------------------------------------------------
@@ -198,6 +203,10 @@ void GridEnvir::OneWeek()
             print_ind(PlantList);
         }
         OutputGamma();
+    }
+    if (output_images) {
+        OutputCompetitionImage();
+        OutputOccupantImage();
     }
     myc.UpdatePool();
 }
@@ -721,4 +730,43 @@ double GridEnvir::calculateBrayCurtis(const std::map<std::string, PFT_struct> & 
     int BC_abundance_sum = present_totalAbundance + past_totalAbundance;
 
     return BC_distance_sum / (double) BC_abundance_sum;
+}
+
+void GridEnvir::OutputOccupantImage() {
+    memset(OccupantImage, 0, GridSize*GridSize*sizeof(OccupantImage[0]));
+
+#if 1
+    for (int x = 0; x < GridSize; x++) {
+        for (int y = 0; y < GridSize; y++) {
+            if (CellList[x + (y*GridSize)]->occupied) {
+                OccupantImage[x + (y*GridSize)] = 0x000000ffu;
+            }
+        }
+    }
+#endif
+
+    std::ostringstream ofile;
+
+    ofile << "./data/out/occupant" << std::setfill('0') << std::setw(4) << year <<std::setw(2) << week << ".raw";
+    std::ofstream img(ofile.str(), std::ios::binary | std::ios::out | std::ios::trunc);
+
+    img.write((const char*)OccupantImage, GridSize*GridSize*sizeof(OccupantImage[0]));
+
+}
+
+void GridEnvir::OutputCompetitionImage() {
+    memset(CompetitionImage, 0, GridSize*GridSize*sizeof(CompetitionImage[0]));
+
+    for (int x = 0; x < GridSize; x++) {
+        for (int y = 0; y < GridSize; y++) {
+            CompetitionImage[x + (y*GridSize)] = (25u << 8) * CellList[x + (y*GridSize)]->AbovePlantList.size();
+        }
+    }
+    std::ostringstream ofile;
+
+    ofile << "./data/out/competition" << std::setfill('0') << std::setw(4) << year <<std::setw(2) << week << ".raw";
+    std::ofstream img(ofile.str(), std::ios::binary | std::ios::out | std::ios::trunc);
+
+    img.write((const char*)CompetitionImage, GridSize*GridSize*sizeof(CompetitionImage[0]));
+
 }

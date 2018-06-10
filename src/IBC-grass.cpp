@@ -31,6 +31,8 @@ int    startseed  = -1;
 int    linetoexec = -1;
 int    proctoexec =  1;
 
+std::set<int> linestoexec;
+
 #define DEFAULT_SIMFILE   "data/in/SimFile.txt"
 #define DEFAULT_OUTPREFIX "default"
 
@@ -44,6 +46,8 @@ bool myc_off = false;
 //
 //  Turn off the ratio feature.
 bool pft_ratio_off = false;
+bool neutral       = false;
+bool output_images = false;
 //
 //  Number of PFTs in the pool of pfts.
 long PFTCount = -1;
@@ -69,16 +73,19 @@ pthread_spinlock_t cout_lock;
 static void dump_help() {
     cerr << "usage:\n"
             "\tibc <options> <simfilename> <outputprefix>\n"
-            "\t\t-h/--help   : print this usage information\n"
-            "\t\t-c          : use this file with configuration data\n"
-            "\t\t-n          : line to execute in simulation\n"
-            "\t\t-p          : number of processors to use\n"
-            "\t\t-s          : set a starting seed for random number generators\n"
-            "\t\t--myc-off   : switch mycorrhiza feedback off\n"
+            "\t\t-h/--help       : print this usage information\n"
+            "\t\t-c              : use this file with configuration data\n"
+            "\t\t-n              : line to execute in simulation\n"
+            "\t\t-p              : number of processors to use\n"
+            "\t\t-s              : set a starting seed for random number generators\n"
+            "\t\t--myc-off       : switch mycorrhiza feedback off\n"
+            "\t\t--neutral       : switch the PFT to neutral mode.\n"
             "\t\t--pft-ratio-off : do not take ratio between PFTs with specific mycStat into account."
-            "\t\t--pft-count : number of PFTs in pool\n"
-            "\t\t--init-seed : number of seeds per PFT on init\n"
-            "\t\t--grid-size : size of the simulated area in cm\n";
+            "\t\t--pft-count     : number of PFTs in pool\n"
+            "\t\t--init-seed     : number of seeds per PFT on init\n"
+            "\t\t--output-images : create raw-images\n"
+            "\t\t--grid-size     : size of the simulated area in cm\n";
+
 
     exit(0);
 
@@ -99,6 +106,10 @@ static void process_long_parameter(string aLongParameter) {
         dump_help();
     } else if (name == "myc-off"){
         myc_off = true;
+    } else if (name == "neutral"){
+        neutral = true;
+    } else if (name == "output-images"){
+        output_images = true;
     } else if (name == "pft-ratio-off"){
         pft_ratio_off = true;
     } else if (name == "pft-count") {
@@ -122,6 +133,35 @@ void ProcessArgs(std::string aArg) {
     } else {
         std::cerr << "Do not except more than two file names.\nTake a look at the help with -h or --help\n";
     }
+}
+
+
+static void filllinestoexec(char *p) {
+    long v;
+    char* e;
+
+    do {
+        v = strtol(p, &e, 10);
+        if (e != 0) {
+            if (*e=='\0') {
+                linestoexec.insert(v);
+            } else if (*e == '-') {
+                p = e+1;
+                long end = strtol(p, &e, 10);
+
+                for (long i=v; i<=end; ++i) {
+                    linestoexec.insert(i);
+                }
+
+            } else if (*e == ',') {
+                e++;
+                linestoexec.insert(v);
+            }
+        } else {
+            linestoexec.insert(v);
+        }
+        p = e;
+    } while ((e != 0) && (*e != '\0'));
 }
 
 int main(int argc, char* argv[])
@@ -157,15 +197,11 @@ int main(int argc, char* argv[])
              case 'n':
                  s++;
                  if (*s!='\0') {
-                     linetoexec=atoi(s);
                  } else {
                      i++;
                      s=argv[i];
-                     if (s!=0) {
-                         linetoexec=atoi(s);
-                     } else {
-                     }
                  }
+                 filllinestoexec(s);
                  break;
              case 'p':
                  s++;
@@ -260,7 +296,7 @@ int main(int argc, char* argv[])
                     //
                     //  Here we check whether the requested line matches and if this line starts with
                     //  the comment character. Lines starting with '#' are comments are not executed.
-                    if (((linetoexec == -1) || (linecounter == linetoexec)) && (data[0] !='#')) {
+                    if (((linestoexec.empty()) || (linestoexec.find(linecounter) != linestoexec.end())) && (data[0] !='#')) {
                         for (int i = 0; i < _NRep; i++)
                         {
                             //

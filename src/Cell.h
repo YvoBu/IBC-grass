@@ -44,7 +44,7 @@ public:
 
     void weeklyReset();
     void SetResource(double Ares, double Bres);
-    double Germinate();
+    double Germinate(double weeks = 1);
     void Germinate(unsigned weeks);
 #if 0
     std::vector<Seed> Germinate();
@@ -82,9 +82,18 @@ public:
     virtual ~CellAsymPartSymV2() {};
     virtual void AboveComp();
     virtual void BelowComp();
-private:
+protected:
     virtual double prop_res_above(const std::string & type);
     virtual double prop_res_below(const std::string& type);
+};
+
+class CellAsymPartAsymV2 : public CellAsymPartSymV2 {
+public:
+    CellAsymPartAsymV2(const unsigned int xx,
+                      const unsigned int yy) : CellAsymPartSymV2(xx,yy) {};
+    virtual ~CellAsymPartAsymV2() {};
+    virtual void BelowComp();
+private:
 };
 
 class CellAsymPartSymV3 : public CellAsymPartSymV2 {

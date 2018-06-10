@@ -207,7 +207,7 @@ double CMycorrhiza::HelpMe(Plant* aPlant, double aResource, double aDemand) {
         mp->second.HelpOffer=aResource;
         //
         //  Calculate the amount of resource that the mycorrhiza returns.
-        retval = (1+mp->second.HelpFactor) * aDemand;
+        retval = (mp->second.HelpFactor) * aDemand;
 //        std::cerr << "Help:" << retval << " aResource:" << aResource << std::endl;
     } else {
         pthread_spin_lock(&cout_lock);

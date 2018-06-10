@@ -17,7 +17,7 @@ SRC=Cell.cpp\
     mycorrhiza.cpp
 
 OBJ=$(SRC:.cpp=.o)
-CXXFLAGS=-DFAST_ERASE_ON_VECTORS
+CXXFLAGS= -march=native
 
 ifdef DEBUG
 CXXFLAGS+=-O0 -g -Wall -std=c++14
