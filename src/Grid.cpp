@@ -314,6 +314,7 @@ void Grid::DistributeResource()
     shareResources();
 }
 
+#if 1
 //----------------------------------------------------------------------------
 /**
  * Resource sharing between connected ramets
@@ -334,7 +335,22 @@ void Grid::shareResources()
         }
     }
 }
-
+#else
+//----------------------------------------------------------------------------
+/**
+ * Resource sharing between connected ramets
+ */
+void Grid::shareResources()
+{
+    for (std::vector<Plant*>::iterator pi = PlantList.begin(); pi != PlantList.end(); ++pi)
+    {
+        if ((*pi)->resourceShare) {
+            (*pi)->ResshareA();
+            (*pi)->ResshareB();
+        }
+    }
+}
+#endif
 //-----------------------------------------------------------------------------
 
 void Grid::EstablishmentLottery()
@@ -938,6 +954,7 @@ void Grid::RemovePlants()
             ++pli;
         }
     }
+#if 1
     //
     //  The PlantList has only working plants left.
     //
@@ -975,7 +992,7 @@ void Grid::RemovePlants()
             ++gi;
         }
     }
-
+#endif
     for(std::set<Plant*>::iterator do_del = plantptr.begin(); do_del != plantptr.end(); ++do_del) {
         delete *do_del;
     }

@@ -17,7 +17,7 @@
 class Grid : public Environment
 {
 
-private:
+public:
     std::vector<int>                      ZOIBase;
     std::vector< std::shared_ptr<Genet> > GenetList;
 protected:

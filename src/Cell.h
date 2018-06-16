@@ -40,7 +40,7 @@ public:
     virtual ~Cell();
 
     void Add(const Seed& aSeed) {SeedBankList.push_back(aSeed) ;};
-    bool ReadyForSeeding() {if ((!AbovePlantList.empty()) || SeedBankList.empty() || occupied) { return false; } else { return true;}};
+    bool ReadyForSeeding() {if (!(AbovePlantList.empty()) || SeedBankList.empty() || occupied) { return false; } else { return true;}};
 
     void weeklyReset();
     void SetResource(double Ares, double Bres);

@@ -602,3 +602,108 @@ double Plant::Radius_root() {
     }
     return retval;
 }
+
+#if 0
+/*
+ * If the ramet has enough resources to fulfill its minimum requirements,
+ * it will "donate" the rest of its resources to a pool that is then equally
+ * shared across all the genet's ramets.
+ *
+ * This is for aboveground
+ */
+void Plant::ResshareA()
+{
+    double sumAuptake  = 0;
+    double MeanAuptake = 0;
+    double AddtoSum    = 0;
+    //
+    //  Doing the same calculations for the plant as to its ramets.
+    double minres      = mThres * Ash_disc * Gmax * 2;
+    AddtoSum           = std::max(0.0, Auptake - minres);
+    //
+    //  Check if there is anything to share.
+    if (AddtoSum > 0)
+    {
+        Auptake     = minres;
+        sumAuptake += AddtoSum;
+    }
+    //
+    //  Now go through the ramets
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        minres = (*ramet)->mThres * (*ramet)->Ash_disc * (*ramet)->Gmax * 2;
+
+        AddtoSum = std::max(0.0, (*ramet)->Auptake - minres);
+
+        if (AddtoSum > 0)
+        {
+            (*ramet)->Auptake = minres;
+            sumAuptake += AddtoSum;
+        }
+    }
+    //
+    //  Because the plant itself must be taken into account we add one to the size of growing spacer list.
+    MeanAuptake = sumAuptake / growingSpacerList.size()+1;
+    //
+    //  Share it.
+    //  Once for the plant.
+    Auptake += MeanAuptake;
+    //
+    //  Then for the ramets.
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        (*ramet)->Auptake += MeanAuptake;
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+/*
+ * This is for belowground.
+ */
+void Plant::ResshareB()
+{
+    double sumBuptake  = 0;
+    double MeanBuptake = 0;
+    double AddtoSum    = 0;
+    //
+    //  Doing the same calculations for the plant as to its ramets.
+    double minres      = mThres * Art_disc * Gmax * 2;
+    AddtoSum           = std::max(0.0, Buptake - minres);
+    //
+    //  Check if there is anything to share.
+    if (AddtoSum > 0)
+    {
+        Buptake     = minres;
+        sumBuptake += AddtoSum;
+    }
+    //
+    //  Now go through the ramets
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        AddtoSum = 0;
+        minres   = (*ramet)->mThres * (*ramet)->Art_disc * (*ramet)->Gmax * 2;
+
+        AddtoSum = std::max(0.0, (*ramet)->Buptake - minres);
+
+        if (AddtoSum > 0)
+        {
+            (*ramet)->Buptake = minres;
+            sumBuptake += AddtoSum;
+        }
+    }
+    //
+    //  Because the plant itself must be taken into account we add one to the size of growing spacer list.
+    MeanBuptake = sumBuptake / growingSpacerList.size()+1;
+    //
+    //  Share it.
+    //  Once for the plant.
+    Buptake += MeanBuptake;
+    //
+    //  Then for the ramets.
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        (*ramet)->Buptake += MeanBuptake;
+    }
+}
+#endif
