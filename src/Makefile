@@ -14,7 +14,8 @@ SRC=Cell.cpp\
     Traits.cpp\
     CThread.cpp\
     CSimulation.cpp\
-    mycorrhiza.cpp
+    mycorrhiza.cpp\
+    timing.cpp
 
 OBJ=$(SRC:.cpp=.o)
 CXXFLAGS= -march=native -DFAST_ERASE_ON_VECTORS

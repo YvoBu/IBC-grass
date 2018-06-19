@@ -214,5 +214,8 @@ double CMycorrhiza::HelpMe(Plant* aPlant, double aResource, double aDemand) {
         std::cerr << "Something is wrong. Unknown plant ask for help.\n";
         pthread_spin_unlock(&cout_lock);
     }
+    pthread_spin_lock(&cout_lock);
+    //std::cerr << "Offer:" << aResource << " Demand:" << aDemand << " Benefit:" << retval << std::endl;
+    pthread_spin_unlock(&cout_lock);
     return retval;
 }

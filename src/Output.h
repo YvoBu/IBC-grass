@@ -51,6 +51,7 @@ public:
 //    void print_param(); // prints general parameterization data
 
     double calculateShannon(const std::map<std::string, PFT_struct> & _PFT_map);
+    double calculateShannon(const std::map<std::string, PFT_struct> & _PFT_map, double aPlantCount);
     double calculateRichness(const std::map<std::string, PFT_struct> & _PFT_map);
     double calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PFT_map, int benchmarkYear, int theYear); // Bray-Curtis only makes sense with catastrophic disturbances
     std::map<std::string, double> calculateMeanTraits(const std::vector< Plant* > & PlantList);

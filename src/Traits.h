@@ -31,7 +31,7 @@ public:
     double RAR;     // root area ratio (root area per root mass) equal to croot in the model description
     double m0;      // initial masses of root and shoot
     double maxMass; // maximum individual mass
-    double maxMassPow_4_3rd;
+    double maxMassPow_4_3rd;  //  Helper to not calculate this constant value over and over again.
 
 //seed reproduction
     double allocSeed;  		// constant proportion that is allocated to seeds between FlowerWeek and DispWeek
@@ -45,7 +45,8 @@ public:
     double palat;   		// Palatability -> susceptibility towards grazing
 
     // above-ground competitive ability
-    inline double CompPowerA() const { return 1.0 / LMR * Gmax; }
+    double LMRbyGmax;
+    inline double CompPowerA() const { return 1.0 / LMR*Gmax; }
 
     // below-ground competitive ability
     inline double CompPowerB() const { return Gmax; }

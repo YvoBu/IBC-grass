@@ -52,11 +52,13 @@ protected:
 
 public:
     Cell**                            CellList;     // array of pointers to CCell
-    std::vector< Plant*>              PlantList;    // plant individuals. This is the anchor place for the plant objects.
+    tPlantList                        PlantList;    // plant individuals. This is the anchor place for the plant objects.
     std::map<std::string, PFT_struct> PFT_Stat;
     std::vector<int>                  below_biomass_history;
     CMycorrhiza                       myc;
     long                              PlantCount;
+    double                            TotalAboveMass;
+    double                            TotalBelowMass;
 
     Grid();
     ~Grid();

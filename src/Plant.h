@@ -7,17 +7,29 @@
 #include <string>
 #include <memory>
 #include <set>
+#include <list>
 
 #include "Genet.h"
 #include "Parameters.h"
 #include "Traits.h"
 
-static const double Pi = std::atan(1) * 4;
+//static const double Pi = std::atan(1) * 4;
 
 class Seed;
 class Cell;
 class Genet;
 class CMycorrhiza;
+
+struct tMassData {
+    int    week;
+    double shoot;
+    double root;
+    double dms;
+    double dmr;
+    int disc;
+    double maxm;
+    int    stress;
+};
 
 class Plant : public Traits
 {
@@ -35,6 +47,7 @@ public:
     std::weak_ptr<Genet>    genet; 		// genet of the clonal plant
 
 	static int staticID;
+    //static std::map<int, std::vector< tMassData > > allmass;
 	int plantID;
 
 	int x;
@@ -94,7 +107,7 @@ public:
 
     inline double Area_shoot()		{ return SLA * pow(LMR * mShoot, 2.0 / 3.0); } // ZOI area
     double Area_root();
-    inline double Radius_shoot() 	{ return sqrt(SLA * pow(LMR * mShoot, 2.0 / 3.0) / Pi); } // ZOI radius
+    inline double Radius_shoot() 	{ return sqrt(SLA * pow(LMR * mShoot, 2.0 / 3.0) / M_PI); } // ZOI radius
     double Radius_root();
 
 	void setCell(Cell* cell);
@@ -134,5 +147,7 @@ public:
     static pthread_mutex_t  vmtx;
     static std::set<Plant*> valid;
 };
+
+typedef std::vector <Plant*> tPlantList;
 
 #endif

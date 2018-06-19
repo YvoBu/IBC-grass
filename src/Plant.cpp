@@ -14,7 +14,7 @@
 #include "IBC-grass.h"
 
 #include "mycorrhiza.h"
-
+//std::map<int, std::vector< tMassData > > Plant::allmass;
 using namespace std;
 extern std::ofstream resfile;
 extern RandomGenerator rng;
@@ -365,6 +365,8 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 	// Root growth
 	dm_root = this->RootGrow(RootRes);
 
+    //allmass[plantID].push_back(tMassData {aWeek, mShoot, mRoot, dm_shoot, dm_root, Art_disc, maxMass, isStressed});
+
 	mShoot += dm_shoot;
 	mRoot += dm_root;
 
@@ -390,11 +392,9 @@ double Plant::ShootGrow(double shres)
 	double Resp_shoot;
 
 	// exponents for growth function
-	double p = 2.0 / 3.0;
-	double q = 2.0;
 
     Assim_shoot = growth * min(shres, Gmax * Ash_disc);                             //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_shoot = growth_SLA_Gmax * pow(LMR, p) * pow(mShoot, q) / maxMassPow_4_3rd; //respiration proportional to mshoot^2
+    Resp_shoot = growth_SLA_Gmax * pow(LMR, 2.0/3.0) * mShoot*mShoot / maxMassPow_4_3rd; //respiration proportional to mshoot^2
 
 	return max(0.0, Assim_shoot - Resp_shoot);
 
@@ -409,10 +409,9 @@ double Plant::RootGrow(double rres)
 	double Assim_root, Resp_root;
 
 	//exponents for growth function
-	double q = 2.0;
 
     Assim_root = growth * min(rres, Gmax * Art_disc);                //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_root = growth_RAR_Gmax * pow(mRoot, q) / maxMassPow_4_3rd;  //respiration proportional to root^2
+    Resp_root = growth_RAR_Gmax * mRoot*mRoot / maxMassPow_4_3rd;  //respiration proportional to root^2
 
 	return max(0.0, Assim_root - Resp_root);
 }
@@ -569,9 +568,11 @@ double Plant::comp_coef(const int layer, const int symmetry) const
             return mShoot * CompPowerA();
         }
         if (layer == 2) {
-            retval = mRoot * CompPowerB();
+            //
+            //  Belowground cometition power is Gmax
+            retval = mRoot * Gmax;
             if (!myc_off) {
-                retval = mRoot * CompPowerB() * ((myc != 0)?mycCOMP:1.0);
+                retval = retval * ((myc != 0)?mycCOMP:1.0);
             }
         }
 		break;
@@ -589,15 +590,15 @@ double Plant::Area_root() {
     double retval = RAR * pow(mRoot, 2.0 / 3.0);
 
     if (!myc_off) {
-      retval = RAR * pow(mRoot, 2.0 / 3.0) * ((myc != 0)?mycZOI:1.0);
+      retval = retval * ((myc != 0)?mycZOI:1.0);
   } else {
   }
   return retval;
 }
 double Plant::Radius_root() {
-    double retval = sqrt(RAR * pow(mRoot, 2.0 / 3.0) / Pi);
+    double retval = sqrt(RAR * pow(mRoot, 2.0 / 3.0) / M_PI);
     if (!myc_off) {
-        retval = sqrt(RAR * ((myc != 0)?mycZOI:1.0) * pow(mRoot, 2.0 / 3.0) / Pi);
+        retval = sqrt(RAR * ((myc != 0)?mycZOI:1.0) * pow(mRoot, 2.0 / 3.0) / M_PI);
     } else {
     }
     return retval;

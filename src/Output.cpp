@@ -3,7 +3,6 @@
 #include <iterator>
 #include <cassert>
 #include <math.h>
-
 #include "itv_mode.h"
 #include "Plant.h"
 #include "Output.h"
@@ -53,7 +52,7 @@ const vector<string> Output::aggregated_header
          "TotalAboveComp", "TotalBelowComp",
          "TotalShootmass", "TotalRootmass",
          "TotalNonClonalPlants", "TotalClonalPlants",
-         "wm_LMR", "wm_MaxMass", "wm_Gmax", "wm_SLA", "OMcount", "FMcount", "NMcount"
+         "wm_LMR", "wm_MaxMass", "wm_Gmax", "wm_SLA", "OMcount", "FMcount", "NMcount, Eveness"
     });
 
 const vector<string> Output::ind_header
@@ -216,6 +215,7 @@ void Output::print_row(vector<string> row, ofstream & stream)
 
 double Output::calculateShannon(const std::map<std::string, PFT_struct> & _PFT_map)
 {
+
     int totalPop = std::accumulate(_PFT_map.begin(), _PFT_map.end(), 0,
                         [] (int s, const std::map<string, PFT_struct>::value_type& p)
                         {
@@ -238,6 +238,29 @@ double Output::calculateShannon(const std::map<std::string, PFT_struct> & _PFT_m
                                 {
                                     return s + p.second;
                                 });
+
+    if (Environment::AreSame(total_Pi_ln_Pi, 0))
+    {
+        return 0;
+    }
+
+    return (-1.0 * total_Pi_ln_Pi);
+}
+
+
+double Output::calculateShannon(const std::map<std::string, PFT_struct> & _PFT_map, double aPlantCount)
+{
+
+    double total_Pi_ln_Pi = 0.0;
+
+    for (auto pft : _PFT_map)
+    {
+        if (pft.second.Pop > 0)
+        {
+            double propPFT = pft.second.Pop / aPlantCount;
+            total_Pi_ln_Pi += propPFT * log(propPFT);
+        }
+    }
 
     if (Environment::AreSame(total_Pi_ln_Pi, 0))
     {

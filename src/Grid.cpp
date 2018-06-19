@@ -113,7 +113,7 @@ void Grid::CellsInit()
 
 void Grid::PlantLoop()
 {
-    for (std::vector< Plant*>::iterator pi=PlantList.begin(); pi != PlantList.end(); ++pi)
+    for (tPlantList::iterator pi=PlantList.begin(); pi != PlantList.end(); ++pi)
     {
         if (ITV == on)
             assert((*pi)->myTraitType == Traits::individualized);
@@ -156,7 +156,7 @@ void getTargetCell(int& xx, int& yy, const float mean, const float sd)
     double dist = exp(rng.getGaussian(mu, sigma));
 
     // direction uniformly distributed
-    double direction = 2 * Pi * rng.get01();
+    double direction = 2 * M_PI * rng.get01();
     xx = round(xx + cos(direction) * dist);
     yy = round(yy + sin(direction) * dist);
 }
@@ -205,7 +205,7 @@ void Grid::DisperseRamets(Plant* p)
         double distance = std::abs(rng.getGaussian(p->meanSpacerlength, p->sdSpacerlength));
 
         // uniformly distributed direction
-        double direction = 2 * Pi * rng.get01();
+        double direction = 2 * M_PI * rng.get01();
         int x = round(p->getCell()->x + cos(direction) * distance);
         int y = round(p->getCell()->y + sin(direction) * distance);
 
@@ -1051,13 +1051,13 @@ void Grid::SetCellResources()
     double a =max(0.0,
                   (-1.0) * Aampl
                           * cos(
-                                  2.0 * Pi * gweek
+                                  2.0 * M_PI * gweek
                                           / double(Environment::WeeksPerYear))
                           + meanARes);
     double b =max(0.0,
                   Bampl
                           * sin(
-                                  2.0 * Pi * gweek
+                                  2.0 * M_PI * gweek
                                           / double(Environment::WeeksPerYear))
                           + meanBRes);
 

@@ -48,6 +48,7 @@ bool myc_off = false;
 bool pft_ratio_off = false;
 bool neutral       = false;
 bool output_images = false;
+bool timing        = false;
 //
 //  Number of PFTs in the pool of pfts.
 long PFTCount = -1;
@@ -80,10 +81,11 @@ static void dump_help() {
             "\t\t-s              : set a starting seed for random number generators\n"
             "\t\t--myc-off       : switch mycorrhiza feedback off\n"
             "\t\t--neutral       : switch the PFT to neutral mode.\n"
-            "\t\t--pft-ratio-off : do not take ratio between PFTs with specific mycStat into account."
+            "\t\t--pft-ratio-off : do not take ratio between PFTs with specific mycStat into account\n"
             "\t\t--pft-count     : number of PFTs in pool\n"
             "\t\t--init-seed     : number of seeds per PFT on init\n"
             "\t\t--output-images : create raw-images\n"
+            "\t\t--timing        : tells us how long to compute for a year\n"
             "\t\t--grid-size     : size of the simulated area in cm\n";
 
 
@@ -112,6 +114,8 @@ static void process_long_parameter(string aLongParameter) {
         output_images = true;
     } else if (name == "pft-ratio-off"){
         pft_ratio_off = true;
+    } else if (name == "timing"){
+        timing = true;
     } else if (name == "pft-count") {
         PFTCount = strtol(value.c_str(), 0, 0);
     } else if (name == "init-seed") {

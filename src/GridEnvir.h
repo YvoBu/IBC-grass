@@ -12,7 +12,8 @@ class GridEnvir: public Grid, public CThread
 
 public:
 
-	GridEnvir();
+    GridEnvir();
+    ~GridEnvir();
 
 	void InitRun();
 	void OneYear();   // runs one year in default mode
