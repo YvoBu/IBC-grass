@@ -547,7 +547,6 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     //
     //  The richness is the number of entries in the PFT_Stat map.
     ss << PFT_Stat.size() << ",";
-//    ss << output.calculateRichness(PFT_Stat)												<< ", ";
 
     double brayCurtis = calculateBrayCurtis(PFT_Stat, CatastrophicDistYear - 1, year);
     if (!Environment::AreSame(brayCurtis, -1))

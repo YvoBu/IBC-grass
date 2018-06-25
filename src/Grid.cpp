@@ -1161,7 +1161,7 @@ double Grid::GetTotalBelowComp()
 }
 
 //-----------------------------------------------------------------------------
-
+#if 0
 int Grid::GetNclonalPlants()
 {
     int NClonalPlants = 0;
@@ -1185,7 +1185,21 @@ int Grid::GetNclonalPlants()
     }
     return NClonalPlants;
 }
-
+#else
+int Grid::GetNclonalPlants() //count clonal plants
+{
+    int NPlants = 0;
+    for (auto const& p : PlantList)
+    {
+        //only if its a non-clonal plant
+        if (p->clonal && !p->isDead)
+        {
+            NPlants++;
+        }
+    }
+    return NPlants;
+}
+#endif
 //-----------------------------------------------------------------------------
 
 int Grid::GetNPlants() //count non-clonal plants
