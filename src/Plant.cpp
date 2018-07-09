@@ -246,7 +246,14 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 	/*  dm/dt = growth*(c*m^p - m^q / m_max^r)  */
 	/********************************************/
 
+    AuptakeStorage += Auptake;
+    BuptakeStorage += Buptake;
 
+    Auptake = min(AuptakeStorage, maxAuptake);
+    Buptake = min(BuptakeStorage, maxBuptake);
+
+    AuptakeStorage -= Auptake;
+    BuptakeStorage -= Buptake;
 
     //
     //
