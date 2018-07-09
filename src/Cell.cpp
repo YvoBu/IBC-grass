@@ -141,157 +141,6 @@ void Cell::SeedMortalityAge() {
     }
 }
 
-//-----------------------------------------------------------------------------
-#if 0
-
-void Cell::AboveComp()
-{
-    if (AbovePlantList.empty())
-        return;
-
-    if (Parameters::params.AboveCompMode == asymtot)
-    {
-        weak_ptr<Plant> p_ptr =
-                *std::max_element(AbovePlantList.begin(), AbovePlantList.end(),
-                        [](const weak_ptr<Plant> & a, const weak_ptr<Plant> & b)
-                        {
-                            auto _a = a.lock();
-                            auto _b = b.lock();
-
-                            return Plant::getShootGeometry(_a) < Plant::getShootGeometry(_b);
-                        });
-
-        auto p = p_ptr.lock();
-
-        assert(p);
-
-        p->Auptake += AResConc;
-
-        return;
-    }
-
-    int symm;
-    if (Parameters::params.AboveCompMode == asympart)
-    {
-        symm = 2;
-    }
-    else
-    {
-        symm = 1;
-    }
-
-    double comp_tot = 0;
-    double comp_c = 0;
-
-    //1. sum of resource requirement
-    for (auto const& plant_ptr : AbovePlantList)
-    {
-        auto plant = plant_ptr.lock();
-
-        comp_tot += plant->comp_coef(1, symm) * prop_res(plant->pft(), 1, Parameters::params.stabilization);
-    }
-
-    //2. distribute resources
-    for (auto const& plant_ptr : AbovePlantList)
-    {
-        auto plant = plant_ptr.lock();
-        assert(plant);
-
-        comp_c = plant->comp_coef(1, symm) * prop_res(plant->pft(), 1, Parameters::params.stabilization);
-        plant->Auptake += AResConc * comp_c / comp_tot;
-    }
-
-    aComp_weekly = comp_tot;
-}
-
-//-----------------------------------------------------------------------------
-
-void Cell::BelowComp()
-{
-    assert(Parameters::params.BelowCompMode != asymtot);
-
-    if (BelowPlantList.empty())
-        return;
-
-    int symm;
-    if (Parameters::params.BelowCompMode == asympart)
-    {
-        symm = 2;
-    }
-    else
-    {
-        symm = 1;
-    }
-
-    double comp_tot = 0;
-    double comp_c = 0;
-
-    //1. sum of resource requirement
-    for (auto const& plant_ptr : BelowPlantList)
-    {
-        auto plant = plant_ptr.lock();
-        assert(plant);
-
-        comp_tot += plant->comp_coef(2, symm) * prop_res(plant->pft(), 2, Parameters::params.stabilization);
-    }
-
-    //2. distribute resources
-    for (auto const& plant_ptr : BelowPlantList)
-    {
-        auto plant = plant_ptr.lock();
-
-        comp_c = plant->comp_coef(2, symm) * prop_res(plant->pft(), 2, Parameters::params.stabilization);
-        plant->Buptake += BResConc * comp_c / comp_tot;
-    }
-
-    bComp_weekly = comp_tot;
-}
-
-//---------------------------------------------------------------------------
-
-double Cell::prop_res(const string& type, const int layer, const int version) const
-{
-    switch (version)
-    {
-    case 0:
-        return 1;
-        break;
-    case 1:
-        if (layer == 1)
-        {
-            map<string, int>::const_iterator noa = PftNIndA.find(type);
-            if (noa != PftNIndA.end())
-            {
-                return 1.0 / std::sqrt(noa->second);
-            }
-        }
-        else if (layer == 2)
-        {
-            map<string, int>::const_iterator nob = PftNIndB.find(type);
-            if (nob != PftNIndB.end())
-            {
-                return 1.0 / std::sqrt(nob->second);
-            }
-        }
-        break;
-    case 2:
-        if (layer == 1)
-        {
-            return PftNIndA.size() / (1.0 + PftNIndA.size());
-        }
-        else if (layer == 2)
-        {
-            return PftNIndB.size() / (1.0 + PftNIndB.size());
-        }
-        break;
-    default:
-        cerr << "CCell::prop_res() - wrong input";
-        exit(3);
-        break;
-    }
-    return -1;
-}
-#endif
 
 void CellAsymPartSymV1::AboveComp() {
     if (AbovePlantList.empty())
@@ -336,7 +185,8 @@ void CellAsymPartSymV1::BelowComp() {
     for (std::vector<Plant*>::iterator pi = BelowPlantList.begin(); pi != BelowPlantList.end(); ++pi)
     {
         comp_c = (*pi)->comp_coef(2, 1);
-        (*pi)->Buptake += BResConc * comp_c / comp_tot;
+        (*pi)->Buptake    += BResConc * comp_c / comp_tot;
+        (*pi)->maxBuptake += BResConc;
     }
 
     bComp_weekly = comp_tot;
@@ -383,7 +233,8 @@ void CellAsymPartSymV2::BelowComp() {
     for (std::vector<Plant*>::iterator pi = BelowPlantList.begin(); pi != BelowPlantList.end(); ++pi)
     {
         comp_c = (*pi)->comp_coef(2, 1) * prop_res_below((*pi)->pft());
-        (*pi)->Buptake += BResConc * comp_c / comp_tot;
+        (*pi)->Buptake    += BResConc * comp_c / comp_tot;
+        (*pi)->maxBuptake += BResConc;
     }
 
     bComp_weekly = comp_tot;
@@ -406,7 +257,8 @@ void CellAsymPartAsymV2::BelowComp() {
     for (std::vector<Plant*>::iterator pi = BelowPlantList.begin(); pi != BelowPlantList.end(); ++pi)
     {
         comp_c = (*pi)->comp_coef(2, 2) * prop_res_below((*pi)->pft());
-        (*pi)->Buptake += BResConc * comp_c / comp_tot;
+        (*pi)->Buptake    += BResConc * comp_c / comp_tot;
+        (*pi)->maxBuptake += BResConc;
     }
 
     bComp_weekly = comp_tot;

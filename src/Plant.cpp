@@ -42,6 +42,9 @@ Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
     myc                = 0;
     spacerLengthToGrow = 0;
     maxAuptake         = 0.0;
+    maxBuptake         = 0.0;
+    AuptakeStorage     = 0.0;
+    BuptakeStorage     = 0.0;
 
     if (itv == on) {
         assert(myTraitType == Traits::individualized);
@@ -88,6 +91,9 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
     myc                = 0;
     spacerLengthToGrow = 0;
     maxAuptake         = 0.0;
+    maxBuptake         = 0.0;
+    AuptakeStorage     = 0.0;
+    BuptakeStorage     = 0.0;
 
     if (itv == on) {
         assert(myTraitType == Traits::individualized);
@@ -143,6 +149,7 @@ void Plant::weeklyReset()
     Auptake    = 0;
     maxAuptake = 0;
     Buptake    = 0;
+    maxBuptake = 0;
     Ash_disc   = 0;
     Art_disc   = 0;
 }
@@ -238,6 +245,9 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 	/********************************************/
 	/*  dm/dt = growth*(c*m^p - m^q / m_max^r)  */
 	/********************************************/
+
+
+
     //
     //
     //  We are working in to steps.

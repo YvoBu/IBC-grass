@@ -37,6 +37,9 @@ Grid::~Grid()
     }
     delete[] CellList;
 
+    for (tPlantList::iterator i=PlantList.begin(); i != PlantList.end(); ++i) {
+        delete *i;
+    }
     ZOIBase.clear();
 
     Plant::staticID = 0;
@@ -228,47 +231,61 @@ void Grid::DisperseRamets(Plant* p)
  */
 void Grid::CoverCells()
 {
+    int halfgrid = GridSize/2;
+
     for (auto const& plant : PlantList)
     {
-        if (plant->iamDeleted) {
-            pthread_spin_lock(&cout_lock);
-            std::cerr << "Very very hard bug\n";
-            pthread_spin_unlock(&cout_lock);
-        }
         double Ashoot = plant->Area_shoot();
         plant->Ash_disc = floor(Ashoot) + 1;
 
         double Aroot = plant->Area_root();
         plant->Art_disc = floor(Aroot) + 1;
 
-        double Amax = max(Ashoot, Aroot);
 
-        for (int a = 0; a < Amax; a++)
-        {
-            int x = plant->getCell()->x
-                    + ZOIBase[a] / GridSize
-                    - GridSize / 2;
-            int y = plant->getCell()->y
-                    + ZOIBase[a] % GridSize
-                    - GridSize / 2;
+        int x = plant->getCell()->x;
+        int y = plant->getCell()->y;
 
-            Torus(x, y);
+        if (plant->isDead) {
 
-            Cell* cell = CellList[x * GridSize + y];
-
-            // Aboveground
-            if (a < Ashoot)
+            for (int a = 0; a < Ashoot; a++)
             {
-                // dead plants still shade others
-                cell->AbovePlantList.push_back(plant);
-                cell->PftNIndA[plant->pft()]++;
+                int xa = ZOIBase[a] / GridSize + x  -halfgrid;
+                int ya = ZOIBase[a] % GridSize + y - halfgrid;
+
+                Torus(xa, ya);
+
+                Cell* cell = CellList[xa * GridSize + ya];
+
+                // Aboveground
+                if (a < Ashoot)
+                {
+                    // dead plants still shade others
+                    cell->AbovePlantList.push_back(plant);
+                    cell->PftNIndA[plant->pft()]++;
+                }
             }
+        } else {
+            double Amax = max(Ashoot, Aroot);
 
-            // Belowground
-            if (a < Aroot)
+            for (int a = 0; a < Amax; a++)
             {
-                // dead plants do not compete for below ground resource
-                if (!plant->isDead)
+                int xa = ZOIBase[a] / GridSize + x  -halfgrid;
+                int ya = ZOIBase[a] % GridSize + y - halfgrid;
+
+                Torus(xa, ya);
+
+                Cell* cell = CellList[xa * GridSize + ya];
+
+                // Aboveground
+                if (a < Ashoot)
+                {
+                    // dead plants still shade others
+                    cell->AbovePlantList.push_back(plant);
+                    cell->PftNIndA[plant->pft()]++;
+                }
+
+                // Belowground
+                if (a < Aroot)
                 {
                     cell->BelowPlantList.push_back(plant);
                     cell->PftNIndB[plant->pft()]++;

@@ -64,7 +64,11 @@ public:
 
 	double Auptake; 			// uptake of above-ground resource in one time step
     double maxAuptake;          // max possible above-ground resource without competition.
-	double Buptake; 			// uptake below-ground resource one time step
+    double AuptakeStorage;
+    double Buptake; 			// uptake below-ground resource one time step
+    double maxBuptake;
+    double BuptakeStorage;
+
 
 	int isStressed;     			// counter for weeks with resource stress exposure
 	bool isDead;      			// plant dead or alive?
