@@ -53,6 +53,9 @@ bool timing        = false;
 //  Number of PFTs in the pool of pfts.
 long PFTCount = -1;
 //
+//  use a fixed mycC
+long fixedMycC = -1;
+//
 //  Name of a configuration file.
 string configfilename;
 //
@@ -80,6 +83,7 @@ static void dump_help() {
             "\t\t-p              : number of processors to use\n"
             "\t\t-s              : set a starting seed for random number generators\n"
             "\t\t--myc-off       : switch mycorrhiza feedback off\n"
+            "\t\t--mycC=<value>  : sets a fixed percentage for mycC\n"
             "\t\t--neutral       : switch the PFT to neutral mode.\n"
             "\t\t--pft-ratio-off : do not take ratio between PFTs with specific mycStat into account\n"
             "\t\t--pft-count     : number of PFTs in pool\n"
@@ -118,6 +122,8 @@ static void process_long_parameter(string aLongParameter) {
         timing = true;
     } else if (name == "pft-count") {
         PFTCount = strtol(value.c_str(), 0, 0);
+    } else if (name == "mycC") {
+        fixedMycC = strtol(value.c_str(), 0, 0);
     } else if (name == "init-seed") {
         no_init_seeds = strtol(value.c_str(), 0, 0);
     } else if (name == "grid-size") {

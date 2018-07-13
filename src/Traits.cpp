@@ -14,7 +14,7 @@
 using namespace std;
 extern RandomGenerator rng;
 extern bool            neutral;
-
+extern long            fixedMycC;
 /*
  * Default constructor
  */
@@ -131,6 +131,11 @@ Traits::Traits(std::string line, double aFbRate) :
         mycCOMP = 1.0;
         mycC    = 0.0;
         mycP    = 0.0;
+    }
+    //
+    //  If some fixed mycC has been set we overwrite the old value.
+    if (fixedMycC != -1) {
+        mycC = fixedMycC/100.0;
     }
     //std::cerr << "Stat: " << mycStat << "::" << mycP << std::endl;
     // optimization for maxMass calculation
