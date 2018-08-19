@@ -14,12 +14,19 @@ SRC=Cell.cpp\
     Traits.cpp\
     CThread.cpp\
     CSimulation.cpp\
-    mycorrhiza.cpp
+    mycorrhiza.cpp\
+    timing.cpp
 
 OBJ=$(SRC:.cpp=.o)
+CXXFLAGS= -march=native -DFAST_ERASE_ON_VECTORS
 
-CXXFLAGS+=-O3 -g -Wall -std=c++14
+ifdef DEBUG
+CXXFLAGS+=-O0 -g -Wall -std=c++14
 LDFLAGS=-lpthread -g
+else
+CXXFLAGS+=-O3 -Wall -std=c++14
+LDFLAGS=-lpthread
+endif
 
 all : ibcgrass
 

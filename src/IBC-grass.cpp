@@ -3,7 +3,7 @@
 #include <sstream>
 #include <memory>
 #include <cassert>
-
+#include <fstream>
 #include "CThread.h"
 #include "itv_mode.h"
 #include "Plant.h"
@@ -20,21 +20,40 @@ using namespace std;
 //
 //  This is the size of one side of a square area.
 //  The whole simulation area is 173*173 cells.
+//  It may be overridden from the command line.
 long   GridSize = 173;   //  Side length in cm
+//
+//  This is the number if seeds to be put into the grid per PFT.
+//  It can be overridden for all runs from the command line.
+long no_init_seeds = 10;
 
 int    startseed  = -1;
 int    linetoexec = -1;
 int    proctoexec =  1;
 
+std::set<int> linestoexec;
+
 #define DEFAULT_SIMFILE   "data/in/SimFile.txt"
 #define DEFAULT_OUTPREFIX "default"
+
+std::ofstream resfile;
 
 std::string NameSimFile = DEFAULT_SIMFILE; 	  // file with simulation scenarios
 std::string outputPrefix = DEFAULT_OUTPREFIX;
 //
 //  flag for switch off mycorrhiza simulation.
 bool myc_off = false;
-
+//
+//  Turn off the ratio feature.
+bool pft_ratio_off = false;
+bool neutral       = false;
+bool output_images = false;
+bool timing        = false;
+//
+//  Number of PFTs in the pool of pfts.
+long PFTCount = -1;
+//
+//  Name of a configuration file.
 string configfilename;
 //
 //  The Randomnumber generation is something that all threads need
@@ -46,18 +65,30 @@ Output output;
 //  This is the mutex to do the management of the running simulations.
 pthread_mutex_t waitmutex;
 pthread_cond_t  wait;
+//
+//  This is a lock to prevent problems while writing some console output.
+pthread_spinlock_t cout_lock;
 //   Support functions for program parameters
 //
 //   This is the usage dumper to the console.
 static void dump_help() {
     cerr << "usage:\n"
             "\tibc <options> <simfilename> <outputprefix>\n"
-            "\t\t-h/--help : print this usage information\n"
-            "\t\t-c        : use this file with configuration data\n"
-            "\t\t-n        : line to execute in simulation\n"
-            "\t\t-p        : number of processors to use\n"
-            "\t\t-s        : set a starting seed for random number generators\n"
-            "\t\t--myc-off : switch mycorrhiza feedback off\n";
+            "\t\t-h/--help       : print this usage information\n"
+            "\t\t-c              : use this file with configuration data\n"
+            "\t\t-n              : line to execute in simulation\n"
+            "\t\t-p              : number of processors to use\n"
+            "\t\t-s              : set a starting seed for random number generators\n"
+            "\t\t--myc-off       : switch mycorrhiza feedback off\n"
+            "\t\t--neutral       : switch the PFT to neutral mode.\n"
+            "\t\t--pft-ratio-off : do not take ratio between PFTs with specific mycStat into account\n"
+            "\t\t--pft-count     : number of PFTs in pool\n"
+            "\t\t--init-seed     : number of seeds per PFT on init\n"
+            "\t\t--output-images : create raw-images\n"
+            "\t\t--timing        : tells us how long to compute for a year\n"
+            "\t\t--grid-size     : size of the simulated area in cm\n";
+
+
     exit(0);
 
 }
@@ -77,6 +108,20 @@ static void process_long_parameter(string aLongParameter) {
         dump_help();
     } else if (name == "myc-off"){
         myc_off = true;
+    } else if (name == "neutral"){
+        neutral = true;
+    } else if (name == "output-images"){
+        output_images = true;
+    } else if (name == "pft-ratio-off"){
+        pft_ratio_off = true;
+    } else if (name == "timing"){
+        timing = true;
+    } else if (name == "pft-count") {
+        PFTCount = strtol(value.c_str(), 0, 0);
+    } else if (name == "init-seed") {
+        no_init_seeds = strtol(value.c_str(), 0, 0);
+    } else if (name == "grid-size") {
+        GridSize = strtol(value.c_str(), 0, 0);
     } else {
         std::cerr << "unknown parameter : " << name << "\n";
     }
@@ -92,6 +137,35 @@ void ProcessArgs(std::string aArg) {
     } else {
         std::cerr << "Do not except more than two file names.\nTake a look at the help with -h or --help\n";
     }
+}
+
+
+static void filllinestoexec(char *p) {
+    long v;
+    char* e;
+
+    do {
+        v = strtol(p, &e, 10);
+        if (e != 0) {
+            if (*e=='\0') {
+                linestoexec.insert(v);
+            } else if (*e == '-') {
+                p = e+1;
+                long end = strtol(p, &e, 10);
+
+                for (long i=v; i<=end; ++i) {
+                    linestoexec.insert(i);
+                }
+
+            } else if (*e == ',') {
+                e++;
+                linestoexec.insert(v);
+            }
+        } else {
+            linestoexec.insert(v);
+        }
+        p = e;
+    } while ((e != 0) && (*e != '\0'));
 }
 
 int main(int argc, char* argv[])
@@ -127,15 +201,11 @@ int main(int argc, char* argv[])
              case 'n':
                  s++;
                  if (*s!='\0') {
-                     linetoexec=atoi(s);
                  } else {
                      i++;
                      s=argv[i];
-                     if (s!=0) {
-                         linetoexec=atoi(s);
-                     } else {
-                     }
                  }
+                 filllinestoexec(s);
                  break;
              case 'p':
                  s++;
@@ -180,7 +250,17 @@ int main(int argc, char* argv[])
          }
          i++;
      }
-    cerr << "Using simfile : " << NameSimFile << endl << "Using output prefix : " << outputPrefix << endl;
+    std::cerr << "Using simfile : " << NameSimFile << endl << "Using output prefix : " << outputPrefix << endl;
+    std::cerr << "Grid-Size is " << GridSize << "cm for all runs. Starting with ";
+    if (PFTCount == -1) {
+        std::cerr << "all";
+    } else {
+        std::cerr << PFTCount;
+    }
+
+    //resfile.open("resfile.csv");
+    std::cerr << " PFTs from the pool of PFTs\n";
+    std::cerr << "Initial seeding uses " << no_init_seeds << " of each PFT used\n";
     //
     //  This is the end of a new program parameter parser.
     //
@@ -197,6 +277,10 @@ int main(int argc, char* argv[])
         //
         // initialize the lock in the simulation class
         pthread_mutex_init(&GridEnvir::gammalock, 0);
+        pthread_mutex_init(&GridEnvir::aggregated_lock, 0);
+        //
+        //  Initialize the output lock
+        pthread_spin_init(&cout_lock, PTHREAD_PROCESS_PRIVATE);
         //
         //  Make it crazy save.
         if (getline(SimFile, data).good()) {
@@ -213,7 +297,10 @@ int main(int argc, char* argv[])
                 //  Each simulation done as often as requested by the NRep value.
                 while (getline(SimFile, data).good())
                 {
-                    if ((linetoexec == -1) || (linecounter == linetoexec)) {
+                    //
+                    //  Here we check whether the requested line matches and if this line starts with
+                    //  the comment character. Lines starting with '#' are comments are not executed.
+                    if (((linestoexec.empty()) || (linestoexec.find(linecounter) != linestoexec.end())) && (data[0] !='#')) {
                         for (int i = 0; i < _NRep; i++)
                         {
                             //
@@ -232,6 +319,10 @@ int main(int argc, char* argv[])
                             pthread_mutex_unlock(&waitmutex);
                         }
                     }
+                    //
+                    //  We do count comment-lines as well.
+                    //  If in need to start a specific line, take your favorite
+                    //  editor and let it show the line.
                     linecounter++;
                 }
                 //

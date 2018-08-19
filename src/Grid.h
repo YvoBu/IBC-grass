@@ -17,10 +17,16 @@
 class Grid : public Environment
 {
 
-private:
+public:
     std::vector<int>                      ZOIBase;
     std::vector< std::shared_ptr<Genet> > GenetList;
+protected:
+    std::vector<double> BlwgrdGrazingPressure;
+    std::vector<double> ContemporaneousRootmassHistory;
+
     void establishRamets(Plant* plant); 	                    // establish ramets
+    void establishRamets(void);                                 // establish ramets from the spacer
+    void collectRamets(Plant* plant); 	                        // collect possible ramets in the cells.
     void shareResources();                						// share resources among connected ramets
     void establishSeedlings(const Seed  & seed);
 protected:
@@ -42,12 +48,17 @@ protected:
     void Cutting(double CutHeight = 0);
     void CellsInit();					// Creates the cells that make up the grid
     void SetCellResources();			// Populates the grid with resources (weekly)
+    long GetMycStatCount(std::string aMycStat);  //  Returns the number of plants of a specific myc-stat
 
 public:
-    Cell**               CellList;     // array of pointers to CCell
-    std::vector< Plant*> PlantList;    // plant individuals. This is the anchor place for the plant objects.
-    std::vector<int>     below_biomass_history;
-    CMycorrhiza          myc;
+    Cell**                            CellList;     // array of pointers to CCell
+    tPlantList                        PlantList;    // plant individuals. This is the anchor place for the plant objects.
+    std::map<std::string, PFT_struct> PFT_Stat;
+    std::vector<int>                  below_biomass_history;
+    CMycorrhiza                       myc;
+    long                              PlantCount;
+    double                            TotalAboveMass;
+    double                            TotalBelowMass;
 
     Grid();
     ~Grid();

@@ -4,10 +4,11 @@
 #include "Plant.h"
 #include "RandomGenerator.h"
 
-#define MAXPLANTS_FROMBADPOOL  0.75
-#define GOODPOOL_HELPFULLLIMIT 0.25
+#define MAXPLANTS_FROMBADPOOL  1.00
+#define GOODPOOL_HELPFULLLIMIT 0.00
 
-extern RandomGenerator rng;
+extern RandomGenerator    rng;
+extern pthread_spinlock_t cout_lock;
 
 CMycorrhiza::CMycorrhiza()
 {
@@ -26,7 +27,9 @@ void CMycorrhiza::Add(Plant *aPlant) {
         //  The new plant gets put into the badpool.
         BadPool.push_back(aPlant);
     } else {
+        pthread_spin_lock(&cout_lock);
         std::cerr << "Something wrong. Try to add a plant to the mycorrhiza that is already there\n";
+        pthread_spin_unlock(&cout_lock);
     }
 }
 
@@ -63,9 +66,13 @@ void CMycorrhiza::Remove(Plant *aPlant) {
         }
         //
         //  If we got here the plant could not be found in the pools. Thats bad.
+        pthread_spin_lock(&cout_lock);
         std::cerr << "Something is wrong. Plant not in pools.\n";
+        pthread_spin_unlock(&cout_lock);
     } else {
+        pthread_spin_lock(&cout_lock);
         std::cerr << "Something is wrong. Try to remove an unknown plant from the mycorrhiza\n";
+        pthread_spin_unlock(&cout_lock);
     }
 }
 
@@ -102,7 +109,9 @@ void CMycorrhiza::UpdatePool() {
             bool attached = BadPool[index]->Attach(this);
 
             if (attached) {
-                PlantInfo pli{0.0, (rng.get01()*FbRange)+FbOffset};
+                //
+                //  Take the feedback rate that is defined for specific PFT within a plant.
+                PlantInfo pli{0.0, BadPool[index]->mycFbrate};
                 //
                 //  Move the plant into the good pool.
                 GoodPool.insert(std::pair<Plant*, PlantInfo>(BadPool[index], pli));
@@ -154,7 +163,9 @@ void CMycorrhiza::UpdatePool() {
                     bool attached = BadPool[index]->Attach(this);
 
                     if (attached) {
-                        PlantInfo pli{0.0, (rng.get01()*FbRange)+FbOffset};
+                        //
+                        //  Take the feedback rate that is defined for specific PFT within a plant.
+                        PlantInfo pli{0.0, BadPool[index]->mycFbrate};
                         //
                         //  Move the plant into the good pool.
                         GoodPool.insert(std::pair<Plant*, PlantInfo>(BadPool[index], pli));
@@ -178,7 +189,7 @@ void CMycorrhiza::UpdatePool() {
     MaxOffer = 0.0;
 }
 
-double CMycorrhiza::HelpMe(Plant* aPlant, double aResource) {
+double CMycorrhiza::HelpMe(Plant* aPlant, double aResource, double aDemand) {
     double retval = 0.0;
     std::map<Plant*, PlantInfo>::iterator mp;
     //
@@ -196,9 +207,15 @@ double CMycorrhiza::HelpMe(Plant* aPlant, double aResource) {
         mp->second.HelpOffer=aResource;
         //
         //  Calculate the amount of resource that the mycorrhiza returns.
-        retval = (1 + mp->second.HelpFactor) * aResource;
+        retval = (mp->second.HelpFactor) * aDemand;
+//        std::cerr << "Help:" << retval << " aResource:" << aResource << std::endl;
     } else {
+        pthread_spin_lock(&cout_lock);
         std::cerr << "Something is wrong. Unknown plant ask for help.\n";
+        pthread_spin_unlock(&cout_lock);
     }
+    pthread_spin_lock(&cout_lock);
+    //std::cerr << "Offer:" << aResource << " Demand:" << aDemand << " Benefit:" << retval << std::endl;
+    pthread_spin_unlock(&cout_lock);
     return retval;
 }

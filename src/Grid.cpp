@@ -17,12 +17,13 @@
 using namespace std;
 
 extern RandomGenerator rng;
+extern bool myc_off;
 
 //---------------------------------------------------------------------------
 
 Grid::Grid()
 {
-
+     PlantCount = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -36,6 +37,9 @@ Grid::~Grid()
     }
     delete[] CellList;
 
+    for (tPlantList::iterator i=PlantList.begin(); i != PlantList.end(); ++i) {
+        delete *i;
+    }
     ZOIBase.clear();
 
     Plant::staticID = 0;
@@ -69,7 +73,20 @@ void Grid::CellsInit()
                     cell = new CellAsymPartSymV3(x, y);
                     break;
                 default:
+                    pthread_spin_lock(&cout_lock);
                     cerr << "Invalid stabilization mode. Exiting\n";
+                    pthread_spin_unlock(&cout_lock);
+                    exit(0);
+                }
+            } else if ((BelowCompMode == asympart) && (AboveCompMode == asympart)) {
+                switch (stabilization) {
+                case version2:
+                    cell = new CellAsymPartAsymV2(x, y);
+                    break;
+                default:
+                    pthread_spin_lock(&cout_lock);
+                    cerr << "Invalid stabilization mode. Exiting\n";
+                    pthread_spin_unlock(&cout_lock);
                     exit(0);
                 }
             }
@@ -78,7 +95,9 @@ void Grid::CellsInit()
                 cell->SetResource(meanARes, meanBRes);
                 CellList[index] = cell;
             } else {
+                pthread_spin_lock(&cout_lock);
                 cerr << "Something went wrong. \n";
+                pthread_spin_unlock(&cout_lock);
             }
         }
     }
@@ -97,7 +116,7 @@ void Grid::CellsInit()
 
 void Grid::PlantLoop()
 {
-    for (std::vector< Plant*>::iterator pi=PlantList.begin(); pi != PlantList.end(); ++pi)
+    for (tPlantList::iterator pi=PlantList.begin(); pi != PlantList.end(); ++pi)
     {
         if (ITV == on)
             assert((*pi)->myTraitType == Traits::individualized);
@@ -140,7 +159,7 @@ void getTargetCell(int& xx, int& yy, const float mean, const float sd)
     double dist = exp(rng.getGaussian(mu, sigma));
 
     // direction uniformly distributed
-    double direction = 2 * Pi * rng.get01();
+    double direction = 2 * M_PI * rng.get01();
     xx = round(xx + cos(direction) * dist);
     yy = round(yy + sin(direction) * dist);
 }
@@ -189,7 +208,7 @@ void Grid::DisperseRamets(Plant* p)
         double distance = std::abs(rng.getGaussian(p->meanSpacerlength, p->sdSpacerlength));
 
         // uniformly distributed direction
-        double direction = 2 * Pi * rng.get01();
+        double direction = 2 * M_PI * rng.get01();
         int x = round(p->getCell()->x + cos(direction) * distance);
         int y = round(p->getCell()->y + sin(direction) * distance);
 
@@ -200,6 +219,7 @@ void Grid::DisperseRamets(Plant* p)
         Plant* Spacer = new Plant(x, y, p, ITV);
         Spacer->spacerLengthToGrow = distance; // This spacer now has to grow to get to its new cell
         p->growingSpacerList.push_back(Spacer);
+        Spacer->parent = p;
     }
 }
 
@@ -211,6 +231,8 @@ void Grid::DisperseRamets(Plant* p)
  */
 void Grid::CoverCells()
 {
+    int halfgrid = GridSize/2;
+
     for (auto const& plant : PlantList)
     {
         double Ashoot = plant->Area_shoot();
@@ -219,34 +241,51 @@ void Grid::CoverCells()
         double Aroot = plant->Area_root();
         plant->Art_disc = floor(Aroot) + 1;
 
-        double Amax = max(Ashoot, Aroot);
 
-        for (int a = 0; a < Amax; a++)
-        {
-            int x = plant->getCell()->x
-                    + ZOIBase[a] / GridSize
-                    - GridSize / 2;
-            int y = plant->getCell()->y
-                    + ZOIBase[a] % GridSize
-                    - GridSize / 2;
+        int x = plant->getCell()->x;
+        int y = plant->getCell()->y;
 
-            Torus(x, y);
+        if (plant->isDead) {
 
-            Cell* cell = CellList[x * GridSize + y];
-
-            // Aboveground
-            if (a < Ashoot)
+            for (int a = 0; a < Ashoot; a++)
             {
-                // dead plants still shade others
-                cell->AbovePlantList.push_back(plant);
-                cell->PftNIndA[plant->pft()]++;
+                int xa = ZOIBase[a] / GridSize + x  -halfgrid;
+                int ya = ZOIBase[a] % GridSize + y - halfgrid;
+
+                Torus(xa, ya);
+
+                Cell* cell = CellList[xa * GridSize + ya];
+
+                // Aboveground
+                if (a < Ashoot)
+                {
+                    // dead plants still shade others
+                    cell->AbovePlantList.push_back(plant);
+                    cell->PftNIndA[plant->pft()]++;
+                }
             }
+        } else {
+            double Amax = max(Ashoot, Aroot);
 
-            // Belowground
-            if (a < Aroot)
+            for (int a = 0; a < Amax; a++)
             {
-                // dead plants do not compete for below ground resource
-                if (!plant->isDead)
+                int xa = ZOIBase[a] / GridSize + x  -halfgrid;
+                int ya = ZOIBase[a] % GridSize + y - halfgrid;
+
+                Torus(xa, ya);
+
+                Cell* cell = CellList[xa * GridSize + ya];
+
+                // Aboveground
+                if (a < Ashoot)
+                {
+                    // dead plants still shade others
+                    cell->AbovePlantList.push_back(plant);
+                    cell->PftNIndA[plant->pft()]++;
+                }
+
+                // Belowground
+                if (a < Aroot)
                 {
                     cell->BelowPlantList.push_back(plant);
                     cell->PftNIndB[plant->pft()]++;
@@ -292,6 +331,7 @@ void Grid::DistributeResource()
     shareResources();
 }
 
+#if 1
 //----------------------------------------------------------------------------
 /**
  * Resource sharing between connected ramets
@@ -312,7 +352,22 @@ void Grid::shareResources()
         }
     }
 }
-
+#else
+//----------------------------------------------------------------------------
+/**
+ * Resource sharing between connected ramets
+ */
+void Grid::shareResources()
+{
+    for (std::vector<Plant*>::iterator pi = PlantList.begin(); pi != PlantList.end(); ++pi)
+    {
+        if ((*pi)->resourceShare) {
+            (*pi)->ResshareA();
+            (*pi)->ResshareB();
+        }
+    }
+}
+#endif
 //-----------------------------------------------------------------------------
 
 void Grid::EstablishmentLottery()
@@ -323,18 +378,33 @@ void Grid::EstablishmentLottery()
      * than a reference to a shared_ptr, thus avoiding invalidation of the reference
      */
 
-    size_t original_size = PlantList.size();
+    if (!myc_off) {
+        size_t original_size = PlantList.size();
 
-    for (size_t i = 0; i < original_size; ++i)
-    {
-        auto const& plant = PlantList[i];
-
-        if (plant->clonal && !plant->isDead)
+        for (size_t i = 0; i < original_size; ++i)
         {
-            establishRamets(plant);
+            auto const& plant = PlantList[i];
+
+            if (plant->clonal && !plant->isDead)
+            {
+                collectRamets(plant);
+            }
+        }
+
+        establishRamets();
+    } else {
+        size_t original_size = PlantList.size();
+
+        for (size_t i = 0; i < original_size; ++i)
+        {
+            auto const& plant = PlantList[i];
+
+            if (plant->clonal && !plant->isDead)
+            {
+                establishRamets(plant);
+            }
         }
     }
-
     int w = Environment::week;
     if ( !( (w >= 1 && w < 5) || (w > 21 && w <= 25) ) ) // establishment is only between weeks 1-4 and 21-25
 //	if ( !( (w >= 1 && w < 5) || (w >= 21 && w < 25) ) ) // establishment is only between weeks 1-4 and 21-25
@@ -352,36 +422,68 @@ void Grid::EstablishmentLottery()
         {
             continue;
         }
-
- #if 1
-
-        double sumSeedMass = cell->Germinate();
-
-        if ( Environment::AreSame(sumSeedMass, 0) ) // No seeds germinated
-        {
-            continue;
-        }
-        double r = rng.get01();
-        double n = r * sumSeedMass;
-
-        for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
-        {
-            n -= itr->mass;
-            if (n <= 0)
-            {
-                establishSeedlings(*itr);
-                break;
-            }
-        }
-        cell->SeedlingList.clear();
-#else
-        std::vector< Seed> seedlings = cell->Germinate();
-
-        if (!seedlings.empty()) {
+        if (!myc_off) {
             //
-            //  Do some selection stuff from the list of seedsling ready.
+            //  We have only 8 weeks where we establish new plants.
+            //  1, 2, 3, 4 and 22, 23, 24,25
+            cell->Germinate(8u);
+            //
+            if (cell->SeedlingList.empty())
+            {
+                continue;
+            }
+
+            std::vector<Seed>::iterator take_that;
+
+            for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
+            {
+                if (itr == cell->SeedlingList.begin())
+                {
+                    take_that = itr;
+                }
+                else
+                {
+                    if (PFT_Stat[itr->PFT_ID].Pop > PFT_Stat[take_that->PFT_ID].Pop)
+                    {
+                        take_that = itr;
+                    }
+                }
+            }
+            //
+            //  Because the loop above is run only if at least one seed is in the SeedlingList
+            //  and take_that get setup in the loop in all circumstances
+            //  we need no check whether take_that is valid here.
+            establishSeedlings(*take_that);
+            cell->SeedlingList.clear();
+        } else {
+            //
+            //  We have only 8 weeks where we establish new plants.
+            //  1, 2, 3, 4 and 22, 23, 24,25
+            double sumSeedMass = cell->Germinate(8.0);
+
+            if (cell->SeedlingList.empty())
+            {
+                continue;
+            }
+
+            double r = rng.get01();
+            double n = r * sumSeedMass;
+
+            for (std::vector<Seed>::iterator itr = cell->SeedlingList.begin(); itr != cell->SeedlingList.end(); ++itr)
+            {
+                n -= itr->mass;
+                if (n <= 0)
+                {
+                    establishSeedlings(*itr);
+                    break;
+                }
+            }
+            //
+            //  Because the loop above is run only if at least one seed is in the SeedlingList
+            //  and take_that get setup in the loop in all circumstances
+            //  we need no check whether take_that is valid here.
+            cell->SeedlingList.clear();
         }
-#endif
     }
 }
 
@@ -398,12 +500,146 @@ void Grid::establishSeedlings(const Seed& seed)
 
     genet->RametList.push_back(p);
     p->setGenet(genet);
-
+    //
+    //  Add it to the plantlist.
     PlantList.push_back(p);
+    //
+    //  Tell the myc about the new plant.
     myc.Add(p);
 }
 
 //-----------------------------------------------------------------------------
+
+void Grid::collectRamets(Plant* plant)
+{
+    auto spacer_itr = plant->growingSpacerList.begin();
+
+    while (spacer_itr != plant->growingSpacerList.end())
+    {
+        const auto& spacer = *spacer_itr;
+
+        if (spacer->spacerLengthToGrow > 0) // This spacer still has to grow more, keep it.
+        {
+            spacer_itr++;
+            continue;
+        }
+        //
+        //  The spacer has been grown long enough here.
+        Cell* cell = CellList[spacer->x * GridSize + spacer->y];
+        //
+        //  Check if it is a free cell.
+        if (!cell->occupied)
+        {
+            //
+            // lottery.
+            //  The pEstab value is the probability per Year.
+            if (rng.get01() < (spacer->pEstab)/WeeksPerYear)
+            {
+                cell->SpacerReadyList.push_back(spacer);
+            }
+        }
+        ++spacer_itr;
+    }
+}
+
+void Grid::establishRamets()
+{
+    for (int i = 0; i < getGridArea(); ++i)
+    {
+        //
+        //  Check if we have any spacer ready.
+        if (!CellList[i]->SpacerReadyList.empty())
+        {
+            //
+            //  Check if we have any kind of competition here.
+            if (CellList[i]->SpacerReadyList.size() == 1)
+            {
+                //
+                //  With no competition here its easy.
+                std::list<Plant*>::iterator si = CellList[i]->SpacerReadyList.begin();
+                Plant* spacer = *si;
+                // This spacer successfully establishes into a ramet (CPlant) of a genet
+                auto Genet = spacer->getGenet().lock();
+                assert(Genet);
+
+                Genet->RametList.push_back(spacer);
+                spacer->setCell(CellList[i]);
+                //
+                //  It is now a plant.
+                PlantList.push_back(spacer);
+                //
+                //  Remove the spacer from its parents GrowingSpacerList.
+                //  Because we do not have any iterator or index available to select the spacer in the growingspacerlist we must search for
+                //  the spacer-pointer and remove it then.
+                //
+                for (std::vector<Plant*>::iterator pi=spacer->parent->growingSpacerList.begin(); pi != spacer->parent->growingSpacerList.end(); ++pi)
+                {
+                    if (*pi == spacer)
+                    {
+                        spacer->parent->growingSpacerList.erase(pi);
+                        spacer->parent = 0;
+                        break;
+                    }
+                }
+                //
+                //  Add the spacer into the mycorrhiza object.
+                myc.Add(spacer);
+
+            }
+            else
+            {
+                std::list<Plant*>::iterator take_that;
+
+                for (std::list<Plant*>::iterator itr = CellList[i]->SpacerReadyList.begin(); itr != CellList[i]->SpacerReadyList.end(); ++itr)
+                {
+                    if (itr == CellList[i]->SpacerReadyList.begin())
+                    {
+                        take_that = itr;
+                    }
+                    else
+                    {
+                        if (PFT_Stat[(*itr)->PFT_ID].Pop > PFT_Stat[(*take_that)->PFT_ID].Pop)
+                        {
+                            take_that = itr;
+                        }
+                    }
+                }
+
+                Plant* spacer = *take_that;
+                // This spacer successfully establishes into a ramet (CPlant) of a genet
+                auto Genet = spacer->getGenet().lock();
+                assert(Genet);
+
+                Genet->RametList.push_back(spacer);
+                spacer->setCell(CellList[i]);
+                //
+                //  It is now a plant.
+                PlantList.push_back(spacer);
+                //
+                //  Remove the spacer from its parents GrowingSpacerList.
+                //  Because we do not have any iterator or index available to select the spacer in the growingspacerlist we must search for
+                //  the spacer-pointer and remove it then.
+                //
+                for (std::vector<Plant*>::iterator pi=spacer->parent->growingSpacerList.begin(); pi != spacer->parent->growingSpacerList.end(); ++pi)
+                {
+                    if (*pi == spacer)
+                    {
+                        spacer->parent->growingSpacerList.erase(pi);
+                        spacer->parent = 0;
+                        break;
+                    }
+                }
+                //
+                //  Add the spacer into the mycorrhiza object.
+                myc.Add(spacer);
+
+            }
+            //
+            //  Clean up the spacer ready list for next week.
+            CellList[i]->SpacerReadyList.clear();
+        }
+    }
+}
 
 void Grid::establishRamets(Plant* plant)
 {
@@ -427,7 +663,9 @@ void Grid::establishRamets(Plant* plant)
         {
             //
             // lottery.
-            if (rng.get01() < rametEstab)
+            //  The pEstab value is the probability per Year.
+//            if (rng.get01() < (rametEstab))
+            if (rng.get01() < (spacer->pEstab)/WeeksPerYear)
             {
                 // This spacer successfully establishes into a ramet (CPlant) of a genet
                 auto Genet = spacer->getGenet().lock();
@@ -449,7 +687,6 @@ void Grid::establishRamets(Plant* plant)
             //
             //  Space has done its purpose. Remove it from the spacer list.
             spacer_itr = plant->growingSpacerList.erase(spacer_itr);
-
         }
         else
         {
@@ -527,7 +764,9 @@ void Grid::Disturb()
                 Cutting(CutHeight);
             break;
         default:
+            pthread_spin_lock(&cout_lock);
             cerr << "CGrid::Disturb() - wrong input";
+            pthread_spin_unlock(&cout_lock);
             exit(1);
         }
     }
@@ -658,8 +897,8 @@ void Grid::GrazingBelGr()
         fn_o = bt - bt * BelGrazResidualPerc;
     }
 
-    output.BlwgrdGrazingPressure.push_back(fn_o);
-    output.ContemporaneousRootmassHistory.push_back(bt);
+    BlwgrdGrazingPressure.push_back(fn_o);
+    ContemporaneousRootmassHistory.push_back(bt);
 
     double fn = fn_o;
     double t_br = 0; // total biomass removed
@@ -722,37 +961,55 @@ void Grid::RemovePlants()
             myc.Remove(*pli);
             (*pli)->getCell()->occupied = false;
             plantptr.insert(*pli);
+#ifdef FAST_ERASE_ON_VECTORS
+            *pli = PlantList.back();
+            PlantList.pop_back();
+#else
             pli=PlantList.erase(pli);
+#endif
         } else {
             ++pli;
         }
     }
+#if 1
     //
     //  The PlantList has only working plants left.
     //
     //  Now go one through the Genet-Lists.
     for (std::vector< std::shared_ptr<Genet> >::iterator gi=GenetList.begin(); gi != GenetList.end();) {
         //
-        //  And withing go along the Ramets hold there.
+        //  And within go along the Ramets hold there.
         std::shared_ptr<Genet> g = *gi;
 
         for (std::vector<Plant*>::iterator pli = g->RametList.begin(); pli != g->RametList.end(); ) {
             if ((*pli)->toBeRemoved) {
                 if (plantptr.find(*pli)== plantptr.end()) {
+                    pthread_spin_lock(&cout_lock);
                     std::cerr << "found plant in RametList that should not be there\n";
+                    pthread_spin_unlock(&cout_lock);
                 }
+#ifdef FAST_ERASE_ON_VECTORS
+                *pli = g->RametList.back();
+                g->RametList.pop_back();
+#else
                 pli = g->RametList.erase(pli);
+#endif
             } else {
                 ++pli;
             }
         }
         if (g->RametList.empty()) {
+#ifdef FAST_ERASE_ON_VECTORS
+            *gi = GenetList.back();
+            GenetList.pop_back();
+#else
             gi = GenetList.erase(gi);
+#endif
         } else {
             ++gi;
         }
     }
-
+#endif
     for(std::set<Plant*>::iterator do_del = plantptr.begin(); do_del != plantptr.end(); ++do_del) {
         delete *do_del;
     }
@@ -808,22 +1065,22 @@ void Grid::InitSeeds(string PFT_ID, const int n, const double estab)
 void Grid::SetCellResources()
 {
     int gweek = Environment::week;
+    double a =max(0.0,
+                  (-1.0) * Aampl
+                          * cos(
+                                  2.0 * M_PI * gweek
+                                          / double(Environment::WeeksPerYear))
+                          + meanARes);
+    double b =max(0.0,
+                  Bampl
+                          * sin(
+                                  2.0 * M_PI * gweek
+                                          / double(Environment::WeeksPerYear))
+                          + meanBRes);
 
     for (int i = 0; i < getGridArea(); ++i) {
         Cell* cell = CellList[i];
-        cell->SetResource(
-                max(0.0,
-                        (-1.0) * Aampl
-                                * cos(
-                                        2.0 * Pi * gweek
-                                                / double(Environment::WeeksPerYear))
-                                + meanARes),
-                max(0.0,
-                        Bampl
-                                * sin(
-                                        2.0 * Pi * gweek
-                                                / double(Environment::WeeksPerYear))
-                                + meanBRes));
+        cell->SetResource(a,b);
     }
 }
 
@@ -921,7 +1178,7 @@ double Grid::GetTotalBelowComp()
 }
 
 //-----------------------------------------------------------------------------
-
+#if 0
 int Grid::GetNclonalPlants()
 {
     int NClonalPlants = 0;
@@ -945,7 +1202,21 @@ int Grid::GetNclonalPlants()
     }
     return NClonalPlants;
 }
-
+#else
+int Grid::GetNclonalPlants() //count clonal plants
+{
+    int NPlants = 0;
+    for (auto const& p : PlantList)
+    {
+        //only if its a non-clonal plant
+        if (p->clonal && !p->isDead)
+        {
+            NPlants++;
+        }
+    }
+    return NPlants;
+}
+#endif
 //-----------------------------------------------------------------------------
 
 int Grid::GetNPlants() //count non-clonal plants
@@ -976,3 +1247,14 @@ int Grid::GetNSeeds()
     return seedCount;
 }
 
+long Grid::GetMycStatCount(string aMycStat) {
+    long retval = 0;
+
+    for (std::vector<Plant*>::iterator i= PlantList.begin(); i != PlantList.end(); ++i) {
+        if ((!(*i)->isDead) && ((*i)->mycStat == aMycStat)) {
+            retval++;
+        }
+    }
+
+    return retval;
+}

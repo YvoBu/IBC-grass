@@ -13,6 +13,7 @@
 
 using namespace std;
 extern RandomGenerator rng;
+extern bool            neutral;
 
 /*
  * Default constructor
@@ -29,7 +30,7 @@ Traits::Traits() :
 
 }
 
-Traits::Traits(std::string line) :
+Traits::Traits(std::string line, double aFbRate) :
     myTraitType(Traits::species), PFT_ID("EMPTY"),
     LMR(-1), SLA(-1), RAR(1), m0(-1), maxMass(-1),
     allocSeed(0.05), seedMass(-1), dispersalDist(-1), dormancy(1), pEstab(0.5),
@@ -58,19 +59,27 @@ Traits::Traits(std::string line) :
         ss >> mycZOI;
         if (!ss.good()) {
             if (mycStat == "OM") {
-                mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
+                mycZOI = ((rng.getrng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
             } else if (mycStat == "FM") {
-                mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+                mycZOI = (rng.getrng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
             } else if (mycStat == "NM") {
                 mycZOI = 1.0;
             }
         }
     } else {
+        double r = rng.get01();
+        if (r < 0.12) {
+            mycStat = "NM";
+        } else if (r < 0.48) {
+            mycStat = "FM";
+        } else {
+            mycStat = "OM";
+        }
         if (!ss.good()) {
             if (mycStat == "OM") {
-                mycZOI = ((rng.rng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
+                mycZOI = ((rng.getrng() |0x01u) / ((double) UINT32_MAX)) + 1.0; // generates random number between 1.0 (0x01u) and 2.0 (+1.0)
             } else if (mycStat == "FM") {
-                mycZOI = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+                mycZOI = (rng.getrng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
             } else if (mycStat == "NM") {
                 mycZOI = 1.0;
             }
@@ -81,9 +90,9 @@ Traits::Traits(std::string line) :
     }
     if (!ss.good()) {
         if (mycStat == "OM") {
-            mycCOMP = ((rng.rng() |0x01u) / ((double) UINT32_MAX) / 2.0); // generates random number between 0 (0x01u) and 2.0
+            mycCOMP = ((rng.getrng() |0x01u) / ((double) UINT32_MAX) / 2.0); // generates random number between 0 (0x01u) and 2.0
         } else if (mycStat == "FM") {
-            mycCOMP = (rng.rng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
+            mycCOMP = (rng.getrng() / ((double) UINT32_MAX)) + 1.0; // generates random number between or equal to 1.0 and 2.0
         } else if (mycStat == "NM") {
             mycCOMP = 1.0;
         }
@@ -92,9 +101,9 @@ Traits::Traits(std::string line) :
         ss >> mycCin;
         if (ss.bad()) {
             if (mycStat == "OM") {
-                mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+                mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
             } else if (mycStat == "FM") {
-                mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+                mycC = (rng.getrng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
             } else if (mycStat == "NM") {
                 mycC = 0;
             }
@@ -103,27 +112,35 @@ Traits::Traits(std::string line) :
         }
     } else {
         if (mycStat == "OM") {
-            mycC = (rng.rng() / (((double) UINT32_MAX ) / 0.4)) + 0.1; // generates random number between 0.1 and 0.5
+            mycC = (rng.getrng() / (((double) UINT32_MAX ) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
         } else if (mycStat == "FM") {
-            mycC = (rng.rng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
+            mycC = (rng.getrng() / (((double) UINT32_MAX) / 0.1)) + 0.1; // generates random number between 0.1 and 0.2
         } else if (mycStat == "NM") {
             mycC = 0;
         }
     }
+    if (mycStat == "OM") {
+        mycP = (rng.getrng() / (((double) UINT32_MAX ) / 0.45)) + 0.45; // generates random number between 0.45 and 0.9
+    } else if (mycStat == "FM") {
+        mycP = (rng.getrng() / (((double) UINT32_MAX) / 0.45)) + 0.45; // generates random number between 0.45 and 0.9
+    } else if (mycStat == "NM") {
+        mycP = 0;
+    }
+    if (neutral) {
+        mycZOI  = 1.0;
+        mycCOMP = 1.0;
+        mycC    = 0.0;
+        mycP    = 0.0;
+    }
+    //std::cerr << "Stat: " << mycStat << "::" << mycP << std::endl;
     // optimization for maxMass calculation
     maxMassPow_4_3rd = pow(maxMass, (4.0/3.0));
-    growth_RAR_Gmax = growth*RAR*Gmax;
-    growth_SLA_Gmax = growth*SLA*Gmax;
+    growth_RAR_Gmax  = growth*RAR*Gmax;
+    growth_SLA_Gmax  = growth*SLA*Gmax;
+    //
+    //  Set the feedback rate for this PFT.
+    mycFbrate        = mycP;
 }
-
-/**
- * Retrieve a deep-copy some arbitrary trait set (for plants dropping seeds)
- */
-unique_ptr<Traits> Traits::copyTraitSet(const unique_ptr<Traits> & t)
-{
-    return (make_unique<Traits>(*t));
-}
-
 //-----------------------------------------------------------------------------
 /**
  * Read definition of PFTs used in the simulation

@@ -1,0 +1,14 @@
+#!/bin/bash
+##
+##  Create the div file for one experiment
+if [ ! -f ${1}_div.csv ] ; then
+echo "Creating diversity file " ${1}_div.csv
+./gamma ${1}_gamma.csv >& ${1}_div.csv
+fi;
+##
+##  Create the div file for the other experiment
+if [ ! -f ${3}_div.csv ] ; then
+echo "Creating diversity file " ${3}_div.csv
+./gamma ${3}_gamma.csv >& ${3}_div.csv
+fi;
+Rscript $( dirname "${BASH_SOURCE[0]}" )/myc.R $1 $2 $3 $4 100

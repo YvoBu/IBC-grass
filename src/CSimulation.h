@@ -2,6 +2,7 @@
 #define CSIMULATION_H
 
 #include <string>
+#include "RandomGenerator.h"
 
 class CSimulation : public GridEnvir
 {
@@ -12,6 +13,8 @@ public:
     virtual void ExitInstance();
 private:
     std::string Configuration;
+public:
+//    RandomGenerator rng;
 };
 
 #endif // CSIMULATION_H

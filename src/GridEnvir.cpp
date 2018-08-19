@@ -1,7 +1,10 @@
-
+#include <memory.h>
 #include <iostream>
 #include <cassert>
+#include <fstream>
+#include <iomanip>
 #include <sstream>
+#include "timing.h"
 #include "itv_mode.h"
 #include "Traits.h"
 #include "Environment.h"
@@ -14,10 +17,28 @@
 #include "IBC-grass.h"
 using namespace std;
 pthread_mutex_t GridEnvir::gammalock;
-
+pthread_mutex_t GridEnvir::aggregated_lock;
+//
+//  This is the nu,ber if seeds to be put into the grid per PFT.
+//  It can be overridden for all runs from the command line.
+extern long no_init_seeds;
+extern bool output_images;
+extern bool timing;
 //------------------------------------------------------------------------------
 
-GridEnvir::GridEnvir() { }
+GridEnvir::GridEnvir() {
+    OccupantImage = 0;
+    CompetitionImage = 0;
+}
+
+GridEnvir::~GridEnvir() {
+    if (OccupantImage != 0) {
+        delete [] OccupantImage;
+    }
+    if (CompetitionImage != 0) {
+        delete [] CompetitionImage;
+    }
+}
 
 //------------------------------------------------------------------------------
 /**
@@ -27,13 +48,16 @@ void GridEnvir::InitRun()
 {
     CellsInit();
     InitInds();
+    if (output_images) {
+        OccupantImage    = new uint32_t[GridSize*GridSize];
+        CompetitionImage = new uint32_t[GridSize*GridSize];
+    }
 }
 
 //-----------------------------------------------------------------------------
 
 void GridEnvir::InitInds()
 {
-    const int no_init_seeds = 10;
     const double estab = 1.0;
 
     if (mode == communityAssembly || mode == catastrophicDisturbance)
@@ -67,9 +91,22 @@ void GridEnvir::OneRun()
     }
 
     do {
-        std::cout << "y " << year << std::endl;
+        pthread_spin_lock(&cout_lock);
+        std::cout << "y " << year;
+        pthread_spin_unlock(&cout_lock);
+        if (timing) {
+            gTimer.Start();
+        }
 
         OneYear();
+
+        pthread_spin_lock(&cout_lock);
+        if (timing) {
+            std::cout << " needs " << gTimer.End()/1000.0 << " miliseconds to compute";
+        }
+        std::cout << std::endl;
+        pthread_spin_unlock(&cout_lock);
+
 
         if (mode == invasionCriterion && year == Tmax_monoculture)
         {
@@ -104,6 +141,48 @@ void GridEnvir::OneYear()
         if (exitConditions()) break;
 
     } while (++week <= WeeksPerYear);
+
+    if (year == 1) {
+        //
+        //  Clear the seedbank in the first year because they are
+        //  all have estab=1.0 set.
+        Cell* cell;
+        for (int i=0; i < getGridArea(); ++i) {
+            cell = CellList[i];
+
+            cell->SeedBankList.clear();
+        }
+    }
+#if 0
+    //
+    //  Create the filename from the SimID only.
+    //  Collecting all runs of an experiment in a single file.
+    //  But use one file per experiment.
+    std::ostringstream  filename;
+
+    filename << "data/out/" << outputPrefix << "_" << SimID << "_masses.csv";
+    //
+    //  Lockout other threads from accessing the file.
+    //pthread_mutex_lock(&GridEnvir::aggregated_lock);
+    //
+    //  Open file for append.
+    std::ofstream aggregatedfile(filename.str(), std::ios_base::app);
+    //
+    //  Check if file could be opened.
+    if (aggregatedfile.good()) {
+        //
+        //  Check if file is empty.
+        if (aggregatedfile.tellp()==0) {
+            aggregatedfile << "PlantId, ShootMass, RootMass, dms, dmr, disc, maximum\n";
+        }
+        for(std::map<int, std::vector< tMassData > >::iterator ai = Plant::allmass.begin(); ai != Plant::allmass.end(); ++ai) {
+            for (std::vector<tMassData>::iterator mi = ai->second.begin(); mi != ai->second.end(); ++mi) {
+                aggregatedfile << ai->first << ", " << mi->week << "," << mi->shoot << ", " << mi->root << ", " << mi->dms << ", " << mi->dmr << ", " << mi->disc << ", " << mi->maxm  << "," << mi->stress << std::endl;
+            }
+        }
+    }
+    Plant::allmass.clear();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -155,15 +234,22 @@ void GridEnvir::OneWeek()
             !(mode == invasionCriterion &&
                     Environment::year <= Tmax_monoculture)) // Not a monoculture
     {
-        output.TotalShootmass.push_back(GetTotalAboveMass());
-        output.TotalRootmass.push_back(GetTotalBelowMass());
-        output.TotalNonClonalPlants.push_back(GetNPlants());
-        output.TotalClonalPlants.push_back(GetNclonalPlants());
-        output.TotalAboveComp.push_back(GetTotalAboveComp());
-        output.TotalBelowComp.push_back(GetTotalBelowComp());
+        //
+        //  Collect some stats information into the PFT_Stat map.
+        //  We are doing it here only once for the different values to create.
+        buildPFT_map(PlantList);
+
+        TotalShootmass.push_back(TotalAboveMass);
+        TotalRootmass.push_back(TotalBelowMass);
+        TotalNonClonalPlants.push_back(GetNPlants());
+        TotalClonalPlants.push_back(GetNclonalPlants());
+        TotalAboveComp.push_back(GetTotalAboveComp());
+        TotalBelowComp.push_back(GetTotalBelowComp());
 
         print_srv_and_PFT(PlantList);
-
+        //
+        //  Check if we should output aggregated data.
+        //  No further check is done beyond this point.
         if (aggregated_out == 1)
         {
             print_aggregated(PlantList);
@@ -174,6 +260,10 @@ void GridEnvir::OneWeek()
             print_ind(PlantList);
         }
         OutputGamma();
+    }
+    if (output_images) {
+        OutputCompetitionImage();
+        OutputOccupantImage();
     }
     myc.UpdatePool();
 }
@@ -282,14 +372,10 @@ void GridEnvir::print_param()
 
 void GridEnvir::print_srv_and_PFT(const std::vector< Plant* > & PlantList)
 {
-
-    // Create the data structure necessary to aggregate individuals
-    auto PFT_map = buildPFT_map(PlantList);
-
     // If any PFT went extinct, record it in "srv" stream
     if (srv_out != 0)
     {
-        for (auto it : PFT_map)
+        for (auto it : PFT_Stat)
         {
             if ((Environment::PftSurvTime[it.first] == 0 && it.second.Pop == 0) ||
                     (Environment::PftSurvTime[it.first] == 0 && Environment::year == Tmax))
@@ -314,7 +400,7 @@ void GridEnvir::print_srv_and_PFT(const std::vector< Plant* > & PlantList)
     if (PFT_out != 0)
     {
         // print each PFT
-        for (auto it : PFT_map)
+        for (auto it : PFT_Stat)
         {
             if (PFT_out == 1 &&
                     it.second.Pop == 0 &&
@@ -337,35 +423,30 @@ void GridEnvir::print_srv_and_PFT(const std::vector< Plant* > & PlantList)
             output.print_row(p_ss, output.PFT_stream);
         }
     }
-
-    // delete PFT_map
-    PFT_map.clear();
 }
 
-map<string, PFT_struct> GridEnvir::buildPFT_map(const std::vector< Plant* > & PlantList)
+void GridEnvir::buildPFT_map(const std::vector< Plant* > & PlantList)
 {
-    map<string, PFT_struct> PFT_map;
-
-    for (auto const& it : pftTraitTemplates)
-    {
-        PFT_map[it.first] = PFT_struct();
-    }
-
+    PlantCount     = 0;
+    TotalAboveMass = 0.0;
+    TotalBelowMass = 0.0;
+    PFT_Stat.clear();
     // Aggregate individuals
     for (auto const& p : PlantList)
     {
-        if (p->isDead)
+        if (p->isDead) {
             continue;
+        }
+        PlantCount++;
+        TotalAboveMass += p->mShoot;
+        TotalAboveMass += p->mRepro;
+        TotalBelowMass += p->mRoot;
 
-        PFT_struct* s = &(PFT_map[p->pft()]);
-
-        s->Pop = s->Pop + 1;
-        s->Rootmass = s->Rootmass + p->mRoot;
-        s->Shootmass = s->Shootmass + p->mShoot;
-        s->Repro = s->Repro + p->mRepro;
+        PFT_Stat[p->pft()].Pop++;
+        PFT_Stat[p->pft()].Rootmass  += p->mRoot;
+        PFT_Stat[p->pft()].Shootmass += p->mShoot;
+        PFT_Stat[p->pft()].Repro     += p->mRepro;
     }
-
-    return PFT_map;
 }
 
 void GridEnvir::print_trait()
@@ -444,9 +525,6 @@ void GridEnvir::print_ind(const std::vector< Plant* > & PlantList)
 }
 void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
 {
-
-    auto PFT_map = buildPFT_map(PlantList);
-
     std::map<std::string, double> meanTraits = output.calculateMeanTraits(PlantList);
 
     std::ostringstream ss;
@@ -454,12 +532,23 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     ss << getSimID() 											<< ", ";
     ss << Environment::year															<< ", ";
     ss << Environment::week 														<< ", ";
-    ss << output.BlwgrdGrazingPressure.back()                                              << ", ";
-    ss << output.ContemporaneousRootmassHistory.back()                                 	<< ", ";
-    ss << output.calculateShannon(PFT_map) 												<< ", ";
-    ss << output.calculateRichness(PFT_map)												<< ", ";
+    if (BlwgrdGrazingPressure.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << BlwgrdGrazingPressure.back()                                              << ", ";
+    }
+    if (ContemporaneousRootmassHistory.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << ContemporaneousRootmassHistory.back()                                 	<< ", ";
+    }
+    double shannon_div = output.calculateShannon(PFT_Stat, PlantCount);
+    ss <<  shannon_div	<< ", ";
+    //
+    //  The richness is the number of entries in the PFT_Stat map.
+    ss << PFT_Stat.size() << ",";
 
-    double brayCurtis = output.calculateBrayCurtis(PFT_map, CatastrophicDistYear - 1, year);
+    double brayCurtis = calculateBrayCurtis(PFT_Stat, CatastrophicDistYear - 1, year);
     if (!Environment::AreSame(brayCurtis, -1))
     {
         ss << brayCurtis 															<< ", ";
@@ -468,20 +557,85 @@ void GridEnvir::print_aggregated(const std::vector< Plant* > & PlantList)
     {
         ss << "NA"																	<< ", ";
     }
+    if (TotalAboveComp.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalAboveComp.back()                                                     << ", ";
+    }
+    if (TotalBelowComp.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalBelowComp.back()                                                     << ", ";
+    }
+    ss << TotalAboveMass << ",";
+    ss << TotalBelowMass << ", ";
+    if (TotalNonClonalPlants.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalNonClonalPlants.back()                                                     << ", ";
+    }
+    if (TotalClonalPlants.empty()) {
+        ss << "0.0, ";
+    } else {
+        ss << TotalClonalPlants.back()                                                     << ", ";
+    }
 
-    ss << output.TotalAboveComp.back()                                                     << ", ";
-    ss << output.TotalBelowComp.back()                                                     << ", ";
-    ss << output.TotalShootmass.back()                                                     << ", ";
-    ss << output.TotalRootmass.back()                                                      << ", ";
-    ss << output.TotalNonClonalPlants.back()                                               << ", ";
-    ss << output.TotalClonalPlants.back()                                                  << ", ";
     ss << meanTraits["LMR"] 														<< ", ";
     ss << meanTraits["MaxMass"] 													<< ", ";
     ss << meanTraits["Gmax"] 														<< ", ";
-    ss << meanTraits["SLA"] 													           ;
+    ss << meanTraits["SLA"] 													    << ", ";
+    ss << GetMycStatCount("OM")													    << ", ";
+    ss << GetMycStatCount("FM")  												    << ", ";
+    ss << GetMycStatCount("NM") 													<< ", ";
+    ss << (shannon_div / (-log(1.0/PlantCount)));
+    //
+    //  Create the filename from the SimID only.
+    //  Collecting all runs of an experiment in a single file.
+    //  But use one file per experiment.
+    std::ostringstream  filename;
 
-    output.print_row(ss, output.aggregated_stream);
-
+    filename << "data/out/" << outputPrefix << "_" << SimID << "_aggregated.csv";
+    //
+    //  Lockout other threads from accessing the file.
+    pthread_mutex_lock(&GridEnvir::aggregated_lock);
+    //
+    //  Open file for append.
+    std::ofstream aggregatedfile(filename.str(), std::ios_base::app);
+    //
+    //  Check if file could be opened.
+    if (aggregatedfile.good()) {
+        //
+        //  Check if file is empty.
+        if (aggregatedfile.tellp()==0) {
+            std::vector<std::string>::const_iterator hi;
+            //
+            //  The header for the aggregated file is already defined in the Output-Class.
+            for(hi = Output::aggregated_header.begin(); hi != Output::aggregated_header.end(); ++hi) {
+                //
+                //  The first header-item has no comma prepended.
+                if (hi != Output::aggregated_header.begin()) {
+                    aggregatedfile << ",";
+                }
+                //
+                //  Output the header-item
+                aggregatedfile << *hi;
+            }
+            aggregatedfile << std::endl;
+        }
+        //
+        //  Output the real data.
+        aggregatedfile << ss.str();
+        //
+        // Write the counts for the pfts.
+        aggregatedfile << std::endl;
+    } else {
+        pthread_spin_lock(&cout_lock);
+        std::cerr << "Could not open aggregatedfile " << filename.str() << std::endl;
+        pthread_spin_unlock(&cout_lock);
+    }
+    //
+    // Allow access from other runs.
+    pthread_mutex_unlock(&GridEnvir::aggregated_lock);
 }
 
 void GridEnvir::OutputGamma() {
@@ -495,7 +649,7 @@ void GridEnvir::OutputGamma() {
     //  Create counters from all PFTs
     std::map< std::string, Traits >::iterator ti;
 
-    for (ti = pftTraitTemplates.begin(); ti != pftTraitTemplates.end(); ++ti) {
+    for (ti = pftAll.begin(); ti != pftAll.end(); ++ti) {
         pft[ti->first] = 0;
     }
     //
@@ -529,6 +683,7 @@ void GridEnvir::OutputGamma() {
             for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
                 gammafile << "," << pfti->first;
             }
+            gammafile << ",OMcount, FMcount, NMcount";
             gammafile << std::endl;
         }
         //
@@ -539,11 +694,132 @@ void GridEnvir::OutputGamma() {
         for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
             gammafile << "," << pfti->second;
         }
+
+        long omc = 0;
+        long fmc = 0;
+        long nmc = 0;
+        std::map<std::string, Traits>::iterator ti;
+
+        for (pfti = pft.begin(); pfti != pft.end(); ++pfti) {
+            if (pfti->second != 0) {
+                ti = pftTraitTemplates.find(pfti->first);
+                if (ti != pftTraitTemplates.end()) {
+                    if (ti->second.mycStat == "OM") {
+                        omc++;
+                    } else if (ti->second.mycStat == "FM") {
+                        fmc++;
+                    } else if (ti->second.mycStat == "NM") {
+                        nmc++;
+                    }
+                }
+            }
+        }
+        gammafile << "," << omc << "," << fmc << "," << nmc;
+
         gammafile << std::endl;
     } else {
+        pthread_spin_lock(&cout_lock);
         std::cerr << "Could not open gammafile " << oss.str() << std::endl;
+        pthread_spin_unlock(&cout_lock);
     }
     //
     // Let other threads do their output.
     pthread_mutex_unlock(&GridEnvir::gammalock);
+}
+
+
+/*
+ * benchmarkYear is generally the year to prior to disturbance
+ * BC_window is the length of the time period (years) in which PFT populations are averaged to arrive at a stable mean for comparison
+ */
+double GridEnvir::calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PFT_map, int benchmarkYear, int theYear)
+{
+    static const int BC_window = 10;
+
+    // Preparing the "average population counts" in the years preceding the catastrophic disturbance
+    if ((theYear > (benchmarkYear - BC_window)) && (theYear <= benchmarkYear))
+    {
+        // Add this year's population to the PFT's abundance sum over the window
+        for (auto& pft : _PFT_map)
+        {
+            BC_predisturbance_Pop[pft.first] += pft.second.Pop;
+        }
+
+        // If it's the last year before disturbance, divide the population count by the window
+        if (theYear == benchmarkYear)
+        {
+            for (auto& pft_total : BC_predisturbance_Pop)
+            {
+                pft_total.second = pft_total.second / BC_window;
+            }
+        }
+    }
+
+    if (theYear <= benchmarkYear)
+    {
+        return -1;
+    }
+
+    std::vector<int> popDistance;
+    for (auto pft : _PFT_map)
+    {
+        popDistance.push_back( abs( BC_predisturbance_Pop[pft.first] - pft.second.Pop ) );
+    }
+
+    int BC_distance_sum = std::accumulate(popDistance.begin(), popDistance.end(), 0);
+
+    int present_totalAbundance = std::accumulate(_PFT_map.begin(), _PFT_map.end(), 0,
+                                [] (int s, const std::map<string, PFT_struct>::value_type& p)
+                                {
+                                    return s + p.second.Pop;
+                                });
+
+    int past_totalAbundance = std::accumulate(BC_predisturbance_Pop.begin(), BC_predisturbance_Pop.end(), 0,
+                                [] (int s, const std::map<string, int>::value_type& p)
+                                {
+                                    return s + p.second;
+                                });
+
+    int BC_abundance_sum = present_totalAbundance + past_totalAbundance;
+
+    return BC_distance_sum / (double) BC_abundance_sum;
+}
+
+void GridEnvir::OutputOccupantImage() {
+    memset(OccupantImage, 0, GridSize*GridSize*sizeof(OccupantImage[0]));
+
+#if 1
+    for (int x = 0; x < GridSize; x++) {
+        for (int y = 0; y < GridSize; y++) {
+            if (CellList[x + (y*GridSize)]->occupied) {
+                OccupantImage[x + (y*GridSize)] = 0x000000ffu;
+            }
+        }
+    }
+#endif
+
+    std::ostringstream ofile;
+
+    ofile << "./data/out/occupant" << std::setfill('0') << std::setw(4) << year <<std::setw(2) << week << ".raw";
+    std::ofstream img(ofile.str(), std::ios::binary | std::ios::out | std::ios::trunc);
+
+    img.write((const char*)OccupantImage, GridSize*GridSize*sizeof(OccupantImage[0]));
+
+}
+
+void GridEnvir::OutputCompetitionImage() {
+    memset(CompetitionImage, 0, GridSize*GridSize*sizeof(CompetitionImage[0]));
+
+    for (int x = 0; x < GridSize; x++) {
+        for (int y = 0; y < GridSize; y++) {
+            CompetitionImage[x + (y*GridSize)] = (25u << 8) * CellList[x + (y*GridSize)]->AbovePlantList.size();
+        }
+    }
+    std::ostringstream ofile;
+
+    ofile << "./data/out/competition" << std::setfill('0') << std::setw(4) << year <<std::setw(2) << week << ".raw";
+    std::ofstream img(ofile.str(), std::ios::binary | std::ios::out | std::ios::trunc);
+
+    img.write((const char*)CompetitionImage, GridSize*GridSize*sizeof(CompetitionImage[0]));
+
 }

@@ -3,7 +3,7 @@
 #define SRC_CELL_H_
 
 #include <vector>
-
+#include <list>
 #include "Traits.h"
 #include "Plant.h"
 #include "Seed.h"
@@ -29,6 +29,8 @@ public:
     std::vector< Seed > SeedBankList; // List of all (ungerminated) seeds in the cell
     std::vector< Seed > SeedlingList; // List of all freshly germinated seedlings in the cell
 public:
+    std::list <Plant*> SpacerReadyList;  // List of spacers in this cell to become a plant.
+public:
     std::map<std::string, int> PftNIndA; // Plants covering the cell aboveground
     std::map<std::string, int> PftNIndB; // Plants covering the cell belowground
 
@@ -38,11 +40,12 @@ public:
     virtual ~Cell();
 
     void Add(const Seed& aSeed) {SeedBankList.push_back(aSeed) ;};
-    bool ReadyForSeeding() {if ((!AbovePlantList.empty()) || SeedBankList.empty() || occupied) { return false; } else { return true;}};
+    bool ReadyForSeeding() {if (!(AbovePlantList.empty()) || SeedBankList.empty() || occupied) { return false; } else { return true;}};
 
     void weeklyReset();
     void SetResource(double Ares, double Bres);
-    double Germinate();
+    double Germinate(double weeks = 1);
+    void Germinate(unsigned weeks);
 #if 0
     std::vector<Seed> Germinate();
 #endif
@@ -79,9 +82,18 @@ public:
     virtual ~CellAsymPartSymV2() {};
     virtual void AboveComp();
     virtual void BelowComp();
-private:
+protected:
     virtual double prop_res_above(const std::string & type);
     virtual double prop_res_below(const std::string& type);
+};
+
+class CellAsymPartAsymV2 : public CellAsymPartSymV2 {
+public:
+    CellAsymPartAsymV2(const unsigned int xx,
+                      const unsigned int yy) : CellAsymPartSymV2(xx,yy) {};
+    virtual ~CellAsymPartAsymV2() {};
+    virtual void BelowComp();
+private:
 };
 
 class CellAsymPartSymV3 : public CellAsymPartSymV2 {

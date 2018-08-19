@@ -12,12 +12,11 @@ class CMycorrhiza
 {
 public:
     CMycorrhiza();
-    void SetFeedbackRange(double aMin, double aMax) { FbMin = aMin; FbMax = aMax; FbRange = FbMax-FbMin;FbOffset=FbMin;};
     void Add(Plant* aPlant);
     void Remove(Plant* aPlant);
     void Detach(Plant* aPlant);
     void UpdatePool(void);
-    double HelpMe(Plant* aPlant, double aResource);
+    double HelpMe(Plant* aPlant, double aResource, double aDemand);
 private:
     struct PlantInfo {
         double HelpOffer;
@@ -37,10 +36,6 @@ private:
     //
     //  This is the maximum offered resource.
     double MaxOffer;
-    double FbMin;
-    double FbMax;
-    double FbRange;
-    double FbOffset;
 };
 
 #endif // MYCORRHIZA_H

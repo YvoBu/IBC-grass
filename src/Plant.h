@@ -6,21 +6,34 @@
 #include <math.h>
 #include <string>
 #include <memory>
+#include <set>
+#include <list>
 
 #include "Genet.h"
 #include "Parameters.h"
 #include "Traits.h"
 
-static const double Pi = std::atan(1) * 4;
+//static const double Pi = std::atan(1) * 4;
 
 class Seed;
 class Cell;
 class Genet;
 class CMycorrhiza;
 
+struct tMassData {
+    int    week;
+    double shoot;
+    double root;
+    double dms;
+    double dmr;
+    int disc;
+    double maxm;
+    int    stress;
+};
+
 class Plant : public Traits
 {
-private:
+public:
     Cell*        cell;
     CMycorrhiza* myc;
 
@@ -34,6 +47,7 @@ public:
     std::weak_ptr<Genet>    genet; 		// genet of the clonal plant
 
 	static int staticID;
+    //static std::map<int, std::vector< tMassData > > allmass;
 	int plantID;
 
 	int x;
@@ -49,14 +63,22 @@ public:
 	int Art_disc; 				// discrete below-ground ZOI area
 
 	double Auptake; 			// uptake of above-ground resource in one time step
-	double Buptake; 			// uptake below-ground resource one time step
+    double maxAuptake;          // max possible above-ground resource without competition.
+    double AuptakeStorage;
+    double Buptake; 			// uptake below-ground resource one time step
+    double maxBuptake;
+    double BuptakeStorage;
+
 
 	int isStressed;     			// counter for weeks with resource stress exposure
 	bool isDead;      			// plant dead or alive?
 	bool toBeRemoved;    			// Should the plant be removed from the PlantList?
+    bool iamDeleted;
 
 	// Clonal
     std::vector< Plant* > growingSpacerList;	// List of growing Spacer
+    Plant*                parent;               // As long as the spacer lives and is not a plant
+                                                // it has a parent.
 	double spacerLengthToGrow;
 
 	// Constructors
@@ -89,7 +111,7 @@ public:
 
     inline double Area_shoot()		{ return SLA * pow(LMR * mShoot, 2.0 / 3.0); } // ZOI area
     double Area_root();
-    inline double Radius_shoot() 	{ return sqrt(SLA * pow(LMR * mShoot, 2.0 / 3.0) / Pi); } // ZOI radius
+    inline double Radius_shoot() 	{ return sqrt(SLA * pow(LMR * mShoot, 2.0 / 3.0) / M_PI); } // ZOI radius
     double Radius_root();
 
 	void setCell(Cell* cell);
@@ -126,7 +148,10 @@ public:
     //  If the plant is non-mycorrhizal or has no mycStat set it refuses to connect the myc.
     bool Attach(CMycorrhiza* aMyc) {if ((mycStat.empty()) || (mycStat=="NM")) {return false;} else {myc = aMyc;return true;}};
     void Detach(void) {myc = 0;};
-
+    static pthread_mutex_t  vmtx;
+    static std::set<Plant*> valid;
 };
+
+typedef std::vector <Plant*> tPlantList;
 
 #endif

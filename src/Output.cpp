@@ -3,7 +3,6 @@
 #include <iterator>
 #include <cassert>
 #include <math.h>
-
 #include "itv_mode.h"
 #include "Plant.h"
 #include "Output.h"
@@ -53,7 +52,7 @@ const vector<string> Output::aggregated_header
          "TotalAboveComp", "TotalBelowComp",
          "TotalShootmass", "TotalRootmass",
          "TotalNonClonalPlants", "TotalClonalPlants",
-         "wm_LMR", "wm_MaxMass", "wm_Gmax", "wm_SLA"
+         "wm_LMR", "wm_MaxMass", "wm_Gmax", "wm_SLA", "OMcount", "FMcount", "NMcount, Eveness"
     });
 
 const vector<string> Output::ind_header
@@ -77,9 +76,9 @@ Output::Output() :
         trait_fn("data/out/trait.txt"),
         srv_fn("data/out/srv.txt"),
         PFT_fn("data/out/PFT.txt"),
-        ind_fn("data/out/ind.txt"),
-        aggregated_fn("data/out/aggregated.txt")
+        ind_fn("data/out/ind.txt")
 {
+#if 0
     BlwgrdGrazingPressure = { 0 };
     ContemporaneousRootmassHistory = { 0 };
     TotalShootmass = { 0 };
@@ -88,6 +87,7 @@ Output::Output() :
     TotalBelowComp = { 0 };
     TotalNonClonalPlants = { 0 };
     TotalClonalPlants = { 0 };
+#endif
     pthread_mutex_init(&outputlock, 0);
     pthread_mutex_init(&openlock, 0);
 }
@@ -98,7 +98,7 @@ Output::~Output()
 }
 
 void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
-                         string _PFT_fn, string _ind_fn, string _agg_fn)
+                         string _PFT_fn, string _ind_fn)
 {
 
     pthread_mutex_lock(&openlock);
@@ -108,7 +108,6 @@ void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
     srv_fn = _srv_fn;
     PFT_fn = _PFT_fn;
     ind_fn = _ind_fn;
-    aggregated_fn = _agg_fn;
 
     bool mid_batch = is_file_exist(param_fn.c_str());
 
@@ -144,13 +143,6 @@ void Output::setupOutput(string _param_fn, string _trait_fn, string _srv_fn,
         assert(srv_stream.good());
         if (!mid_batch) print_row(srv_header, srv_stream);
     }
-
-    if ((!aggregated_fn.empty())  && (!aggregated_stream.is_open()))
-    {
-        aggregated_stream.open(aggregated_fn.c_str(), ios_base::app);
-        assert(aggregated_stream.good());
-        if (!mid_batch) print_row(aggregated_header, aggregated_stream);
-    }
     pthread_mutex_unlock(&openlock);
 }
 
@@ -185,11 +177,6 @@ void Output::cleanup()
     if (Output::ind_stream.is_open()) {
         Output::ind_stream.close();
         Output::ind_stream.clear();
-    }
-
-    if (Output::aggregated_stream.is_open()) {
-        Output::aggregated_stream.close();
-        Output::aggregated_stream.clear();
     }
 }
 
@@ -228,6 +215,7 @@ void Output::print_row(vector<string> row, ofstream & stream)
 
 double Output::calculateShannon(const std::map<std::string, PFT_struct> & _PFT_map)
 {
+
     int totalPop = std::accumulate(_PFT_map.begin(), _PFT_map.end(), 0,
                         [] (int s, const std::map<string, PFT_struct>::value_type& p)
                         {
@@ -259,6 +247,29 @@ double Output::calculateShannon(const std::map<std::string, PFT_struct> & _PFT_m
     return (-1.0 * total_Pi_ln_Pi);
 }
 
+
+double Output::calculateShannon(const std::map<std::string, PFT_struct> & _PFT_map, double aPlantCount)
+{
+
+    double total_Pi_ln_Pi = 0.0;
+
+    for (auto pft : _PFT_map)
+    {
+        if (pft.second.Pop > 0)
+        {
+            double propPFT = pft.second.Pop / aPlantCount;
+            total_Pi_ln_Pi += propPFT * log(propPFT);
+        }
+    }
+
+    if (Environment::AreSame(total_Pi_ln_Pi, 0))
+    {
+        return 0;
+    }
+
+    return (-1.0 * total_Pi_ln_Pi);
+}
+
 double Output::calculateRichness(const std::map<std::string, PFT_struct> & _PFT_map)
 {
     int richness = std::accumulate(_PFT_map.begin(), _PFT_map.end(), 0,
@@ -273,7 +284,7 @@ double Output::calculateRichness(const std::map<std::string, PFT_struct> & _PFT_
 
     return richness;
 }
-
+#if 0
 /*
  * benchmarkYear is generally the year to prior to disturbance
  * BC_window is the length of the time period (years) in which PFT populations are averaged to arrive at a stable mean for comparison
@@ -330,7 +341,7 @@ double Output::calculateBrayCurtis(const std::map<std::string, PFT_struct> & _PF
 
     return BC_distance_sum / (double) BC_abundance_sum;
 }
-
+#endif
 std::map<std::string, double> Output::calculateMeanTraits(const std::vector< Plant* > & PlantList)
 {
     std::map<std::string, double> weightedMeanTraits;

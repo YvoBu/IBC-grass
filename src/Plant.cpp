@@ -1,6 +1,7 @@
-
+#include <fstream>
 #include <cassert>
 #include <iostream>
+
 
 #include "itv_mode.h"
 #include "Cell.h"
@@ -13,11 +14,14 @@
 #include "IBC-grass.h"
 
 #include "mycorrhiza.h"
-
+//std::map<int, std::vector< tMassData > > Plant::allmass;
 using namespace std;
-
+extern std::ofstream resfile;
 extern RandomGenerator rng;
 extern bool myc_off;
+
+pthread_mutex_t Plant::vmtx = PTHREAD_MUTEX_INITIALIZER;
+std::set<Plant*>   Plant::valid;
 //-----------------------------------------------------------------------------
 /**
  * constructor - germination
@@ -32,10 +36,15 @@ Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
 		cell(NULL), mReproRamets(0), genet(),
 		plantID(++staticID), x(0), y(0),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
-        isStressed(0), isDead(false), toBeRemoved(false)
+        isStressed(0), isDead(false), toBeRemoved(false), iamDeleted(false)
 {
-    myc = 0;
+    parent             = 0;
+    myc                = 0;
     spacerLengthToGrow = 0;
+    maxAuptake         = 0.0;
+    maxBuptake         = 0.0;
+    AuptakeStorage     = 0.0;
+    BuptakeStorage     = 0.0;
 
     if (itv == on) {
         assert(myTraitType == Traits::individualized);
@@ -53,6 +62,18 @@ Plant::Plant(const Seed & seed, ITV_mode itv) : Traits(seed),
 		x = cell->x;
 		y = cell->y;
 	}
+#ifdef MONITOR_PLANT_PTR
+    std::set<Plant*>::iterator pi;
+
+    pthread_mutex_lock(&Plant::vmtx);
+    pi = Plant::valid.find(this);
+    if (pi != Plant::valid.end()) {
+        std::cerr << "big bug. Pointer already in set\n";
+    } else {
+        Plant::valid.insert(this);
+    }
+    pthread_mutex_unlock(&Plant::vmtx);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -64,10 +85,15 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
 		cell(NULL), mReproRamets(0), genet(plant->genet),
 		plantID(++staticID), x(x), y(y),
 		age(0), mRepro(0), Ash_disc(0), Art_disc(0), Auptake(0), Buptake(0),
-        isStressed(0), isDead(false), toBeRemoved(false)
+        isStressed(0), isDead(false), toBeRemoved(false), iamDeleted(false)
 {
-    myc = 0;
+    parent             = 0;
+    myc                = 0;
     spacerLengthToGrow = 0;
+    maxAuptake         = 0.0;
+    maxBuptake         = 0.0;
+    AuptakeStorage     = 0.0;
+    BuptakeStorage     = 0.0;
 
     if (itv == on) {
         assert(myTraitType == Traits::individualized);
@@ -77,6 +103,18 @@ Plant::Plant(double x, double y, const Plant* plant, ITV_mode itv) : Traits(*pla
 
     mShoot = m0;
     mRoot = m0;
+#ifdef MONITOR_PLANT_PTR
+    std::set<Plant*>::iterator pi;
+
+    pthread_mutex_lock(&Plant::vmtx);
+    pi = Plant::valid.find(this);
+    if (pi != Plant::valid.end()) {
+        std::cerr << "big bug. Pointer already in set\n";
+    } else {
+        Plant::valid.insert(this);
+    }
+    pthread_mutex_unlock(&Plant::vmtx);
+#endif
 }
 
 //---------------------------------------------------------------------------
@@ -91,14 +129,29 @@ Plant::~Plant()
     for (pi = growingSpacerList.begin(); pi != growingSpacerList.end(); ++pi) {
         delete *pi;
     }
+    iamDeleted = true;
+#ifdef MONITOR_PLANT_PTR
+    std::set<Plant*>::iterator pix;
+
+    pthread_mutex_lock(&Plant::vmtx);
+    pix = Plant::valid.find(this);
+    if (pix != Plant::valid.end()) {
+        Plant::valid.erase(this);
+    } else {
+        std::cerr << "big bug. Pointer not in set\n";
+    }
+    pthread_mutex_unlock(&Plant::vmtx);
+#endif
 }
 
 void Plant::weeklyReset()
 {
-	Auptake = 0;
-	Buptake = 0;
-	Ash_disc = 0;
-	Art_disc = 0;
+    Auptake    = 0;
+    maxAuptake = 0;
+    Buptake    = 0;
+    maxBuptake = 0;
+    Ash_disc   = 0;
+    Art_disc   = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -188,29 +241,100 @@ void Plant::Grow(int aWeek) //grow plant one timestep
 {
 	double dm_shoot, dm_root, alloc_shoot;
 	double LimRes, ShootRes, RootRes, VegRes;
-
+    double resoffer = 0;   //  If the mycorrhiza gets some offer it will showup here
 	/********************************************/
 	/*  dm/dt = growth*(c*m^p - m^q / m_max^r)  */
 	/********************************************/
+
+    AuptakeStorage += Auptake;
+    BuptakeStorage += Buptake;
+
+    Auptake = min(AuptakeStorage, maxAuptake);
+    Buptake = min(BuptakeStorage, maxBuptake);
+
+    AuptakeStorage -= Auptake;
+    BuptakeStorage -= Buptake;
+
+    //
+    //
+    //  We are working in to steps.
+    //
+    //  In the first step we need to calculate the normal shoot growth based on
+    //  the already calculated Auptake and Buptage values.
+    //  For this step we need some calculations that are done again later
+    //  with some corrected resource values.
+    LimRes = min(Buptake, Auptake); // two layers
+#if 1
     if (!myc_off) {
         //
         //  We have mycorrhiza support.
         if (myc != 0) {
             //
+            //  Reduce the resource amount by the reproduction resources needed.
+            if (mRepro <= allocSeed * mShoot)
+            {
+                double SeedRes = LimRes * allocSeed;
+                double SpacerRes = LimRes * allocSpacer;
+
+                // during the seed-production-weeks
+                if ((aWeek >= flowerWeek) && (aWeek < dispersalWeek))
+                {
+                    //clonal growth
+                    double d = max(0.0, min(SpacerRes, LimRes - SeedRes)); // for large AllocSeed, resources may be < SpacerRes, then only take remaining resources
+
+                    VegRes = LimRes - SeedRes - d;
+                }
+                else
+                {
+                    VegRes = LimRes - SpacerRes;
+                }
+            }
+            else
+            {
+                VegRes = LimRes;
+            }
+            //
+            //  Here we have the available resources calculated.
+            //
+            //  allocation to shoot and root growth
+            //  calculation is based on the original values.
+            alloc_shoot = Buptake / (Buptake + Auptake); // allocation coefficient
+            //
+            //  Only calculating the resources allocated to the shoot growth.
+            ShootRes = alloc_shoot * VegRes;
+            //
+            //  Calculation of the shoot mass growth.
+            //  This value is needed for calculation of growth reduction in case of
+            dm_shoot = this->ShootGrow(ShootRes);
+            //
             //  Buptake is limiting. Ask for help.
             if (Buptake < Auptake) {
                 //
-                //  Calculating amount of resource to take from a-uptake
-                double resoffer = Auptake * mycC;
+                //  Calculating amount of biomass that we loose on growth
+                resoffer = dm_shoot * mycC;
                 //
-                //  Reduce a-uptake
-                Auptake-=resoffer;
+                //  The demand is the possible maximum that the plant can get because of
+                //  the covered cells.
+#if 1
+                double demand = maxAuptake;
+#else
+                double demand = Buptake;
+#endif
                 //
                 //  ask for help.
-                double reshelp = myc->HelpMe(this, resoffer);
+                double reshelp = myc->HelpMe(this, resoffer, demand);
                 //
                 //  Anyway we take the help from the mycorrhiza
                 Buptake+= reshelp;
+                //
+                //  If we simulate strange parasitic behaviour reshelp may
+                //  become negative and thus may reduce the Buptage below zero.
+                //  This makes no sense and gets stopped here.
+                if (Buptake < 0.0) {
+                    Buptake = 0.0;
+                }
+                LimRes = Buptake;
+#if 0
                 //
                 //  But if we are an FM class plant we check the benefit
                 if ((mycStat == "FM") && (reshelp < resoffer)) {
@@ -220,26 +344,45 @@ void Plant::Grow(int aWeek) //grow plant one timestep
                     myc->Detach(this);
                     myc = 0;
                 }
+#endif
             } else {
+                //
+                //  Not limiting
+                //
+                //  OMs are always loosing biomass to mycorrhiza.
+                if (mycStat == "OM") {
+                    //
+                    //  Calculating amount of biomass that we loose on growth
+                    resoffer = dm_shoot * mycC;
+                }
             }
         } else {
         }
     }
-    // which resource is limiting growth?
-    LimRes = min(Buptake, Auptake); // two layers
-
+#endif
+    //
+    //  VegRes are the resources available for growth.
+    //  It may be reduced for reproduction
     VegRes = ReproGrow(LimRes, aWeek);
 	// allocation to shoot and root growth
+    //
+    //  The extreme situations here are
+    //
+    //   With Auptake = 0 alloc_shoot gets 1.0
+    //   With Buptake = 0 alloc_shoot gets 0.0
+    //   With Auptake around Buptake alloc_shoot is 0.5
 	alloc_shoot = Buptake / (Buptake + Auptake); // allocation coefficient
 
 	ShootRes = alloc_shoot * VegRes;
 	RootRes = VegRes - ShootRes;
-
+//    resfile << plantID << "," << Auptake<< "," << Buptake << "," << alloc_shoot << "," << ShootRes << "," << RootRes <<std::endl;
 	// Shoot growth
-	dm_shoot = this->ShootGrow(ShootRes);
+    dm_shoot = (this->ShootGrow(ShootRes) - resoffer);
 
 	// Root growth
 	dm_root = this->RootGrow(RootRes);
+
+    //allmass[plantID].push_back(tMassData {aWeek, mShoot, mRoot, dm_shoot, dm_root, Art_disc, maxMass, isStressed});
 
 	mShoot += dm_shoot;
 	mRoot += dm_root;
@@ -266,11 +409,9 @@ double Plant::ShootGrow(double shres)
 	double Resp_shoot;
 
 	// exponents for growth function
-	double p = 2.0 / 3.0;
-	double q = 2.0;
 
-    Assim_shoot = growth * min(shres, Gmax * Ash_disc);                                 //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_shoot = growth_SLA_Gmax * pow(LMR, p) * pow(mShoot, q) / maxMassPow_4_3rd; //respiration proportional to mshoot^2
+    Assim_shoot = growth * min(shres, Gmax * Ash_disc);                             //growth limited by maximal resource per area -> similar to uptake limitation
+    Resp_shoot = growth_SLA_Gmax * pow(LMR, 2.0/3.0) * mShoot*mShoot / maxMassPow_4_3rd; //respiration proportional to mshoot^2
 
 	return max(0.0, Assim_shoot - Resp_shoot);
 
@@ -285,10 +426,9 @@ double Plant::RootGrow(double rres)
 	double Assim_root, Resp_root;
 
 	//exponents for growth function
-	double q = 2.0;
 
-    Assim_root = growth * min(rres, Gmax * Art_disc); //growth limited by maximal resource per area -> similar to uptake limitation
-    Resp_root = growth_RAR_Gmax * pow(mRoot, q) / maxMassPow_4_3rd;  //respiration proportional to root^2
+    Assim_root = growth * min(rres, Gmax * Art_disc);                //growth limited by maximal resource per area -> similar to uptake limitation
+    Resp_root = growth_RAR_Gmax * mRoot*mRoot / maxMassPow_4_3rd;  //respiration proportional to root^2
 
 	return max(0.0, Assim_root - Resp_root);
 }
@@ -309,7 +449,7 @@ void Plant::Kill(double aBackgroundMortality)
     assert(memory >= 1);
 
     double pmort = (double(isStressed) / double(memory)) + aBackgroundMortality; // stress mortality + random background mortality
-    double amort = rng.rng() / (double) UINT32_MAX;
+    double amort = rng.getrng() / (double) UINT32_MAX;
 
     if (amort < pmort)
 	{
@@ -430,6 +570,8 @@ void Plant::WinterLoss(double aWinterDieback)
  */
 double Plant::comp_coef(const int layer, const int symmetry) const
 {
+    double retval = -1;
+
 	switch (symmetry)
 	{
 	case 1:
@@ -443,32 +585,143 @@ double Plant::comp_coef(const int layer, const int symmetry) const
             return mShoot * CompPowerA();
         }
         if (layer == 2) {
-            if (myc_off) {
-                return mRoot * CompPowerB();
-            } else {
-                return mRoot * CompPowerB() * ((myc != 0)?mycCOMP:1.0);
+            //
+            //  Belowground cometition power is Gmax
+            retval = mRoot * Gmax;
+            if (!myc_off) {
+                retval = retval * ((myc != 0)?mycCOMP:1.0);
             }
         }
 		break;
 	default:
-		cerr << "CPlant::comp_coef() - wrong input";
-		exit(1);
+        pthread_spin_lock(&cout_lock);
+        cerr << "CPlant::comp_coef() - wrong input";
+        pthread_spin_unlock(&cout_lock);
+        exit(1);
 	}
 
-	return -1;
+    return retval;
 }
 
 double Plant::Area_root() {
+    double retval = RAR * pow(mRoot, 2.0 / 3.0);
+
     if (!myc_off) {
-      return RAR * pow(mRoot, 2.0 / 3.0) * ((myc != 0)?mycZOI:1.0);
+      retval = retval * ((myc != 0)?mycZOI:1.0);
   } else {
-      return RAR * pow(mRoot, 2.0 / 3.0);
   }
+  return retval;
 }
 double Plant::Radius_root() {
+    double retval = sqrt(RAR * pow(mRoot, 2.0 / 3.0) / M_PI);
     if (!myc_off) {
-        return sqrt(RAR * ((myc != 0)?mycZOI:1.0) * pow(mRoot, 2.0 / 3.0) / Pi);
+        retval = sqrt(RAR * ((myc != 0)?mycZOI:1.0) * pow(mRoot, 2.0 / 3.0) / M_PI);
     } else {
-        return sqrt(RAR * pow(mRoot, 2.0 / 3.0) / Pi);
+    }
+    return retval;
+}
+
+#if 0
+/*
+ * If the ramet has enough resources to fulfill its minimum requirements,
+ * it will "donate" the rest of its resources to a pool that is then equally
+ * shared across all the genet's ramets.
+ *
+ * This is for aboveground
+ */
+void Plant::ResshareA()
+{
+    double sumAuptake  = 0;
+    double MeanAuptake = 0;
+    double AddtoSum    = 0;
+    //
+    //  Doing the same calculations for the plant as to its ramets.
+    double minres      = mThres * Ash_disc * Gmax * 2;
+    AddtoSum           = std::max(0.0, Auptake - minres);
+    //
+    //  Check if there is anything to share.
+    if (AddtoSum > 0)
+    {
+        Auptake     = minres;
+        sumAuptake += AddtoSum;
+    }
+    //
+    //  Now go through the ramets
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        minres = (*ramet)->mThres * (*ramet)->Ash_disc * (*ramet)->Gmax * 2;
+
+        AddtoSum = std::max(0.0, (*ramet)->Auptake - minres);
+
+        if (AddtoSum > 0)
+        {
+            (*ramet)->Auptake = minres;
+            sumAuptake += AddtoSum;
+        }
+    }
+    //
+    //  Because the plant itself must be taken into account we add one to the size of growing spacer list.
+    MeanAuptake = sumAuptake / growingSpacerList.size()+1;
+    //
+    //  Share it.
+    //  Once for the plant.
+    Auptake += MeanAuptake;
+    //
+    //  Then for the ramets.
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        (*ramet)->Auptake += MeanAuptake;
     }
 }
+
+//-----------------------------------------------------------------------------
+
+/*
+ * This is for belowground.
+ */
+void Plant::ResshareB()
+{
+    double sumBuptake  = 0;
+    double MeanBuptake = 0;
+    double AddtoSum    = 0;
+    //
+    //  Doing the same calculations for the plant as to its ramets.
+    double minres      = mThres * Art_disc * Gmax * 2;
+    AddtoSum           = std::max(0.0, Buptake - minres);
+    //
+    //  Check if there is anything to share.
+    if (AddtoSum > 0)
+    {
+        Buptake     = minres;
+        sumBuptake += AddtoSum;
+    }
+    //
+    //  Now go through the ramets
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        AddtoSum = 0;
+        minres   = (*ramet)->mThres * (*ramet)->Art_disc * (*ramet)->Gmax * 2;
+
+        AddtoSum = std::max(0.0, (*ramet)->Buptake - minres);
+
+        if (AddtoSum > 0)
+        {
+            (*ramet)->Buptake = minres;
+            sumBuptake += AddtoSum;
+        }
+    }
+    //
+    //  Because the plant itself must be taken into account we add one to the size of growing spacer list.
+    MeanBuptake = sumBuptake / growingSpacerList.size()+1;
+    //
+    //  Share it.
+    //  Once for the plant.
+    Buptake += MeanBuptake;
+    //
+    //  Then for the ramets.
+    for (std::vector<Plant*>::iterator ramet = growingSpacerList.begin(); ramet != growingSpacerList.end(); ramet++)
+    {
+        (*ramet)->Buptake += MeanBuptake;
+    }
+}
+#endif
