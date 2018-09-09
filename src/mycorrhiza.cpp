@@ -83,7 +83,7 @@ void CMycorrhiza::Detach(Plant* aPlant) {
 
     if (pi != GoodPool.end()) {
         //
-        //  After that it is easy. Remove from good pool, add to BadPool.
+        //  After that it is easy. Remove plant from GoodPool and add it to BadPool.
         GoodPool.erase(pi);
         BadPool.push_back(aPlant);
     }
@@ -140,7 +140,7 @@ void CMycorrhiza::UpdatePool() {
             //  Maybe all plants are helpfull. Non got deleted.
             if (!deletionlist.empty()) {
                 //
-                //  Delete the plants from the good pool to keep the pool small.
+                //  Delete the plants from the good pool.
                 std::list<Plant*>::iterator pi;
 
                 for (pi = deletionlist.begin(); pi != deletionlist.end(); ++pi) {
@@ -148,7 +148,7 @@ void CMycorrhiza::UpdatePool() {
                     (*pi)->Detach();
                 }
                 //
-                //  Do the renewal of the good pool
+                //  Do the renewal of the good pool due to transfer of plants from good to bad pool
                 int renewcount = (plantcount*MAXPLANTS_FROMBADPOOL) - GoodPool.size();
 
 //                std::cerr << "MaxOffer: " << MaxOffer << " Delete: " << deletionlist.size() << " Renew: " << renewcount << std::endl;
